@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"os"
 
+	"stupid-caldaia/controller/graph"
+
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/Ax6/stupid-caldaia/controller/graph"
 )
 
 const defaultPort = "8080"

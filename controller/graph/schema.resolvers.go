@@ -7,7 +7,7 @@ package graph
 import (
 	"context"
 
-	"github.com/Ax6/stupid-caldaia/controller/graph/model"
+	"stupid-caldaia/controller/graph/model"
 )
 
 // SetSwitch is the resolver for the setSwitch field.

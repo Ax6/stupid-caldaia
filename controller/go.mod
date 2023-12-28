@@ -1,4 +1,4 @@
-module github.com/Ax6/stupid-caldaia/controller
+module stupid-caldaia/controller
 
 go 1.21.3
 
