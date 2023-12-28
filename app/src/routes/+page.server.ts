@@ -37,11 +37,11 @@ export async function load(): Promise<PageData> {
 				maxTemp
 				targetTemp
 			}
-			temperature(position: "centrale") {
+			sensor(name: "temperatura", position: "centrale") {
 				timestamp
 				value
 			}
-			temperatureRange(position: "centrale") {
+			sensorRange(name: "temperatura", position: "centrale") {
 				timestamp
 				value
 			}

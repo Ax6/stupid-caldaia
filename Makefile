@@ -1,10 +1,17 @@
 APP_IMAGE=stupid-caldaia-app
-TARGET_MACHINE=pi@192.168.1.112
+TARGET_ADDRESS=192.168.1.112
+TARGET_MACHINE=pi@$(TARGET_ADDRESS)
 CONTROLLER_IMAGE=stupid-caldaia-controller
 WORKER_IMAGE=stupid-caldaia-worker
 
+run-app-target:
+	cd app && PUBLIC_SERVER_HOST=$(TARGET_ADDRESS) PUBLIC_CLIENT_HOST=$(TARGET_ADDRESS) npm run dev && cd..
+
+sync:
+	git push && ssh $(TARGET_MACHINE) 'cd stupid-caldaia && git pull'
+
 restart:
-	docker-compose restart
+	docker compose restart
 
 restart-target:
 	ssh $(TARGET_MACHINE) 'cd stupid-caldaia && make restart'

@@ -5,7 +5,7 @@
 
 	let subscription = madonne<TemperatureData>(gql`
 		subscription {
-			temperature(position: "centrale") {
+			sensor(name: "temperatura", position: "centrale") {
 				value
 				timestamp
 			}
