@@ -9,12 +9,16 @@ services:
 
   controller:
     build:
-      context: controller
-      dockerfile: ../dockerfiles/controller.Dockerfile
+      context: .
+      dockerfile: dockerfiles/controller.Dockerfile
     network_mode: host
 
   worker:
     build:
-      context: lettore
-      dockerfile: ../dockerfiles/worker.Dockerfile
+      context: .
+      dockerfile: dockerfiles/worker.Dockerfile
+    network_mode: host
+
+  redis:
+    image: redis/redis-stack-server:latest
     network_mode: host
