@@ -29,6 +29,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	close, err := config.OpenPin()
+	if err != nil {
+		panic(err)
+	}
+	defer close()
 
 	_, sensors, boiler := config.CreateObjects(ctx)
 

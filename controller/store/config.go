@@ -7,6 +7,7 @@ import (
 	"stupid-caldaia/controller/graph/model"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/stianeikeland/go-rpio/v4"
 )
 
 const (
@@ -60,4 +61,17 @@ func (c *Config) CreateObjects(ctx context.Context) (*redis.Client, map[string]*
 		panic(err)
 	}
 	return client, sensors, boiler
+}
+
+func (c *Config) OpenPin() (func(), error) {
+	err := rpio.Open()
+	if err != nil {
+		return nil, err
+	}
+	pin := rpio.Pin(c.Boiler.SwitchPin)
+	return func() {
+		pin.Output()
+		pin.Low()
+		rpio.Close()
+	}, nil
 }
