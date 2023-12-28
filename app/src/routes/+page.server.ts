@@ -1,6 +1,6 @@
 import { gql, madonna } from '$lib/porca-madonna-ql';
 
-export type PageData = BoilerData & TemperatureData;
+export type PageData = BoilerData & TemperatureData & TemperatureRangeData;
 
 export type BoilerData = {
 	boiler: Boiler;
@@ -8,6 +8,10 @@ export type BoilerData = {
 
 export type TemperatureData = {
 	temperature: Measure;
+};
+
+export type TemperatureRangeData = {
+	temperatureRange: Measure[];
 };
 
 export type Boiler = {
@@ -37,6 +41,10 @@ export async function load(): Promise<PageData> {
 				timestamp
 				value
 			}
+            temperatureRange(position: "centrale") {
+                timestamp
+                value
+            }
 		}
 	`);
 }
