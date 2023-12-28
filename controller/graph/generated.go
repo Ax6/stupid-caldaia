@@ -83,7 +83,7 @@ type ComplexityRoot struct {
 
 	Subscription struct {
 		Boiler      func(childComplexity int) int
-		Temperature func(childComplexity int, from *time.Time, position string) int
+		Temperature func(childComplexity int, position string) int
 	}
 }
 
@@ -97,7 +97,7 @@ type QueryResolver interface {
 	Temperature(ctx context.Context, from *time.Time, to *time.Time, position string) ([]*model.Measure, error)
 }
 type SubscriptionResolver interface {
-	Temperature(ctx context.Context, from *time.Time, position string) (<-chan *model.Measure, error)
+	Temperature(ctx context.Context, position string) (<-chan *model.Measure, error)
 	Boiler(ctx context.Context) (<-chan *model.Boiler, error)
 }
 
@@ -269,7 +269,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Subscription.Temperature(childComplexity, args["from"].(*time.Time), args["position"].(string)), true
+		return e.complexity.Subscription.Temperature(childComplexity, args["position"].(string)), true
 
 	}
 	return 0, false
@@ -510,24 +510,15 @@ func (ec *executionContext) field_Query_temperature_args(ctx context.Context, ra
 func (ec *executionContext) field_Subscription_temperature_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *time.Time
-	if tmp, ok := rawArgs["from"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
-		arg0, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["from"] = arg0
-	var arg1 string
+	var arg0 string
 	if tmp, ok := rawArgs["position"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("position"))
-		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["position"] = arg1
+	args["position"] = arg0
 	return args, nil
 }
 
@@ -1521,7 +1512,7 @@ func (ec *executionContext) _Subscription_temperature(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().Temperature(rctx, fc.Args["from"].(*time.Time), fc.Args["position"].(string))
+		return ec.resolvers.Subscription().Temperature(rctx, fc.Args["position"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

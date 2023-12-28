@@ -37,8 +37,8 @@ func (r *queryResolver) Temperature(ctx context.Context, from *time.Time, to *ti
 }
 
 // Temperature is the resolver for the temperature field.
-func (r *subscriptionResolver) Temperature(ctx context.Context, from *time.Time, position string) (<-chan *model.Measure, error) {
-	return r.Sensors["temperatura:"+position].Subscribe()
+func (r *subscriptionResolver) Temperature(ctx context.Context, position string) (<-chan *model.Measure, error) {
+	return r.Sensors["temperatura:"+position].Latest()
 }
 
 // Boiler is the resolver for the boiler field.

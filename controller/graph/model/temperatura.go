@@ -92,7 +92,7 @@ func (s *Sensor) Get(ctx context.Context, from *time.Time, to *time.Time) ([]*Me
 	return measures, nil
 }
 
-func (s *Sensor) Subscribe() (<-chan *Measure, error) {
+func (s *Sensor) Latest() (<-chan *Measure, error) {
 	temperatureUpdates := make(chan *Measure)
 	go func() {
 		for msg := range s.sub.Channel() {
