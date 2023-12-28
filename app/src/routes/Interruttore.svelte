@@ -1,47 +1,32 @@
 <script lang="ts">
-	import { gql, porca, madonna } from '$lib/porca-madonna-ql';
+	import { gql, madonna } from '$lib/porca-madonna-ql';
+	export let data: { switch: { state: State } };
 
 	type State = 'ON' | 'OFF';
 	type SetSwitch = { setSwitch: State };
 
-	let data = madonna<{ switch: { state: State } }>(
-		gql`
-			query {
-				switch {
-					state
-				}
-			}
-		`
-	);
-
 	async function handleClick() {
-		const result = await porca<SetSwitch>(
+		const result = await madonna<SetSwitch>(
 			gql`
 				mutation setSwitch($state: State!) {
 					setSwitch(state: $state)
 				}
 			`,
 			{
-				state: $data.switch.state === 'ON' ? 'OFF' : 'ON'
+				state: data.switch.state === 'ON' ? 'OFF' : 'ON'
 			}
 		);
-		data.update((value) => {
-			value.switch.state = result.setSwitch;
-			return value;
-		});
+		data.switch.state = result.setSwitch;
 	}
 </script>
 
 <button
-	class="m-2 p-2 grid place-items-center rounded-xl {$data?.switch.state.toLowerCase() ||
-		'unknown'}"
+	class="m-2 p-2 grid place-items-center rounded-xl {data.switch.state.toLowerCase() || 'unknown'}"
 	on:click={handleClick}
 >
 	<p class="text-xl">Caldaia</p>
 	<p class="text-6xl">
-		{#if $data}
-			{$data.switch.state}
-		{/if}
+		{data.switch.state}
 	</p>
 </button>
 
