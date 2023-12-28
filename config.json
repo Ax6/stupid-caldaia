@@ -1,0 +1,12 @@
+{
+    "sensors": [
+        {
+            "name": "temperatura",
+            "position": "centrale"
+        }
+    ],
+    "redis": {
+        "addr": "localhost:6379",
+        "password": ""
+    }
+}

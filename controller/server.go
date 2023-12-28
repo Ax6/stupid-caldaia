@@ -1,5 +1,5 @@
 //go:generate go run ./gqlgen.go
-package controller
+package main
 
 import (
 	"log"
