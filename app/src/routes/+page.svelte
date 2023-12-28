@@ -1,16 +1,9 @@
 <script lang="ts">
-    import { graphql } from '$houdini';
-
-    const temperatura = graphql(`
-        subscription ItemUpdate($position: String!) {
-            onTemperaturaChange(position: "centrale")
-        }
-    `)
+	import TemperaturaAttuale from "$lib/components/TemperaturaAttuale.svelte";
+    import Interruttore from "$lib/components/Interruttore.svelte";
 </script>
 
-
-<section>
-    <div>
-        <h1>Temperatura attuale</h1>
-    </div>
-</section>
+<body class='flex flex-col items-center'>
+    <TemperaturaAttuale />
+    <Interruttore />
+</body>
