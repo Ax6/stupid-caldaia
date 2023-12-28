@@ -34,8 +34,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@urql/svelte": "^4.0.4",
-		"houdini": "^1.2.34",
-		"ws": "^8.15.1"
+		"graphql-request": "^6.1.0",
+		"graphql-ws": "^5.14.3"
 	}
 }

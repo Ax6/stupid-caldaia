@@ -1,25 +1,61 @@
 <script lang="ts">
-	import { gql, GraphQLClient } from 'graphql-request';
-	import { onMount } from 'svelte';
+	import { gql, porca, madonna } from '$lib/porca-madonna-ql';
 
-	let data: any;
+	type State = 'ON' | 'OFF';
+	type SetSwitch = { setSwitch: State };
 
-	const client = new GraphQLClient('http://localhost:8080/query');
-
-	const switchState = gql`
-		query SwitchState {
-			switch {
-				state
+	let data = madonna<{ switch: { state: State } }>(
+		gql`
+			query {
+				switch {
+					state
+				}
 			}
-		}
-	`;
+		`,
+		{}
+	);
 
-	onMount(async () => data = await client.request(switchState));
+	async function handleClick() {
+		const result = await porca<SetSwitch>(
+			gql`
+				mutation setSwitch($state: State!) {
+					setSwitch(state: $state)
+				}
+			`,
+			{
+				state: $data.switch.state === 'ON' ? 'OFF' : 'ON'
+			}
+		);
+		data.update((value) => {
+			value.switch.state = result.setSwitch;
+			return value;
+		});
+	}
 </script>
 
-<button class="w-full sm:w-64 bg-green-300 m-2 p-2 grid place-items-center rounded-xl">
+<button
+	class="m-2 p-2 grid place-items-center rounded-xl {$data?.switch.state.toLowerCase() ||
+		'unknown'}"
+	on:click={handleClick}
+>
 	<p class="text-xl">Caldaia</p>
 	<p class="text-6xl">
-        { data?.switch.state }
+		{#if $data}
+			{$data.switch.state}
+		{/if}
 	</p>
 </button>
+
+<style>
+	.on {
+		@apply bg-green-300;
+	}
+
+	.off {
+		@apply bg-gray-300;
+	}
+
+	.unknown {
+		@apply bg-red-300;
+	}
+</style>

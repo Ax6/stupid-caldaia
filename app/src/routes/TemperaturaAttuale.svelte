@@ -1,27 +1,27 @@
 <script lang="ts">
-	import { GraphQLClient } from 'kikstart-graphql-client';
-	
-	const client = new GraphQLClient({
-		url: 'http://localhost:8080/query',
-		wsUrl: 'ws://localhost:8080/query',
-	})
+	import { gql, madonne } from '$lib/porca-madonna-ql';
+	import { writable } from 'svelte/store';
+	import { onMount } from 'svelte';
 
-	const query = `
-		subscription temperatureChange($position: String!) {
-			onTemperatureChange(position: "centrale")
-		}
-	`
+	type TemperatureChange = {
+		onTemperatureChange: number;
+	};
 
-	client.runSubscription(query).subscribe({
-		next: res => console.log(JSON.stringify(res.data.statusSubscription, null, 2)),
-		error: error => console.error(error),
-		complete: () => console.log('done'),
-	})
+	let data = madonne<TemperatureChange>(
+		gql`
+			subscription {
+				onTemperatureChange(position: "centrale")
+			}
+		`,
+		{}
+	);
 </script>
 
-<div class="w-full bg-green-300 m-2 p-2 grid place-items-center rounded-xl">
+<div class="bg-gray-400 m-2 p-2 grid place-items-center rounded-xl">
 	<p class="text-xl">Temperatura attuale</p>
-
 	<p class="text-6xl">
+		{#if $data}
+			{$data.onTemperatureChange.toFixed(1)} °C
+		{/if}
 	</p>
 </div>
