@@ -29,6 +29,7 @@ services:
       dockerfile: dockerfiles/controller.Dockerfile
     devices:
       - "/dev/mem:/dev/mem"
+      - "/dev/gpiomem:/dev/gpiomem"
     ports:
       - 8080:8080
     depends_on:
