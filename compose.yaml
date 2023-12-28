@@ -12,17 +12,17 @@ services:
     networks:
       - stupid_network
 
-  worker:
-    build:
-      context: .
-      dockerfile: dockerfiles/worker.Dockerfile
-    network_mode: host
-    devices:
-      - "/dev/i2c-1:/dev/i2c-1"
-    depends_on:
-      - controller
-    networks:
-      - stupid_network
+#  worker:
+#    build:
+#      context: .
+#      dockerfile: dockerfiles/worker.Dockerfile
+#    network_mode: host
+#    devices:
+#      - "/dev/i2c-1:/dev/i2c-1"
+#    depends_on:
+#      - controller
+#    networks:
+#      - stupid_network
 
   controller:
     build:
