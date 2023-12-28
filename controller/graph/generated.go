@@ -9,12 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"stupid-caldaia/controller/graph/model"
 	"sync"
 	"sync/atomic"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"stupid-caldaia/controller/graph/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -241,7 +241,7 @@ func (ec *executionContext) field_Mutation_setSwitch_args(ctx context.Context, r
 	var arg0 *model.State
 	if tmp, ok := rawArgs["state"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
-		arg0, err = ec.unmarshalOState2ᚖgithubᚗcomᚋAx6ᚋstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, tmp)
+		arg0, err = ec.unmarshalOState2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -331,7 +331,7 @@ func (ec *executionContext) _Mutation_setSwitch(ctx context.Context, field graph
 	}
 	res := resTmp.(model.State)
 	fc.Result = res
-	return ec.marshalNState2githubᚗcomᚋAx6ᚋstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, field.Selections, res)
+	return ec.marshalNState2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_setSwitch(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -386,7 +386,7 @@ func (ec *executionContext) _Query_switch(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.(*model.Switch)
 	fc.Result = res
-	return ec.marshalNSwitch2ᚖgithubᚗcomᚋAx6ᚋstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐSwitch(ctx, field.Selections, res)
+	return ec.marshalNSwitch2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐSwitch(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_switch(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -563,7 +563,7 @@ func (ec *executionContext) _Switch_state(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.(model.State)
 	fc.Result = res
-	return ec.marshalNState2githubᚗcomᚋAx6ᚋstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, field.Selections, res)
+	return ec.marshalNState2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Switch_state(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2861,13 +2861,13 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNState2githubᚗcomᚋAx6ᚋstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx context.Context, v interface{}) (model.State, error) {
+func (ec *executionContext) unmarshalNState2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx context.Context, v interface{}) (model.State, error) {
 	var res model.State
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNState2githubᚗcomᚋAx6ᚋstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx context.Context, sel ast.SelectionSet, v model.State) graphql.Marshaler {
+func (ec *executionContext) marshalNState2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx context.Context, sel ast.SelectionSet, v model.State) graphql.Marshaler {
 	return v
 }
 
@@ -2886,11 +2886,11 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNSwitch2githubᚗcomᚋAx6ᚋstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐSwitch(ctx context.Context, sel ast.SelectionSet, v model.Switch) graphql.Marshaler {
+func (ec *executionContext) marshalNSwitch2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐSwitch(ctx context.Context, sel ast.SelectionSet, v model.Switch) graphql.Marshaler {
 	return ec._Switch(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNSwitch2ᚖgithubᚗcomᚋAx6ᚋstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐSwitch(ctx context.Context, sel ast.SelectionSet, v *model.Switch) graphql.Marshaler {
+func (ec *executionContext) marshalNSwitch2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐSwitch(ctx context.Context, sel ast.SelectionSet, v *model.Switch) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -3179,7 +3179,7 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) unmarshalOState2ᚖgithubᚗcomᚋAx6ᚋstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx context.Context, v interface{}) (*model.State, error) {
+func (ec *executionContext) unmarshalOState2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx context.Context, v interface{}) (*model.State, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -3188,7 +3188,7 @@ func (ec *executionContext) unmarshalOState2ᚖgithubᚗcomᚋAx6ᚋstupidᚑcal
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOState2ᚖgithubᚗcomᚋAx6ᚋstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx context.Context, sel ast.SelectionSet, v *model.State) graphql.Marshaler {
+func (ec *executionContext) marshalOState2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx context.Context, sel ast.SelectionSet, v *model.State) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

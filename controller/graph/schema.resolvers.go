@@ -6,7 +6,6 @@ package graph
 
 import (
 	"context"
-
 	"stupid-caldaia/controller/graph/model"
 )
 
