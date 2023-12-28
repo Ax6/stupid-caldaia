@@ -5,12 +5,10 @@ services:
     build:
       context: app
       dockerfile: ../dockerfiles/app.Dockerfile
-    ports:
-      - "4173:4173"
+    network_mode: host
 
   controller:
     build:
       context: controller
       dockerfile: ../dockerfiles/controller.Dockerfile
-    ports:
-      - "8080:8080"
+    network_mode: host
