@@ -14,11 +14,21 @@
 	$: innerWidth = width - margin.left - margin.right;
 
 	$: xValues = data.sensorRange.map((d) => new Date(d.timestamp));
-	$: xDomain = [d3.min(xValues) || 0, d3.max(xValues) || 0];
+	$: xDomain = [d3.min(xValues) || new Date(), d3.max(xValues) || new Date()];
 	$: xScale = d3.scaleLinear().domain(xDomain).range([0, innerWidth]);
 
+	$: xTicks = d3.range(0, 24, Math.round(1000 / width)).reduce((acc: Date[], curr: number) => {
+		const delta = xDomain[1].getTime() - 1000 * 60 * 60 * curr;
+		const closestHour = new Date(delta);
+		closestHour.setMinutes(0);
+		return closestHour.getTime() > xDomain[0].getTime() ? [...acc, closestHour] : acc;
+	}, []);
+
 	$: yValues = data.sensorRange.map((d) => d.value);
-	$: yDomain = [data.boiler.maxTemp, data.boiler.minTemp];
+	$: yDomain = [
+		(d3.max(yValues) || data.boiler.maxTemp) + 5,
+		(d3.min(yValues) || data.boiler.minTemp) - 5
+	];
 	$: yScale = d3.scaleLinear().domain(yDomain).range([0, innerHeight]);
 
 	function hideTooltip() {
@@ -70,24 +80,25 @@
 			on:blur={hideTooltip}
 		>
 			<g transform={`translate(${margin.left},${margin.top})`}>
-				{#each xScale.ticks(width / 100) as tickValue}
+				{#each xTicks as tickValue}
 					<g transform={`translate(${xScale(tickValue)},0)`}>
-						<line y2={innerHeight} stroke="black" />
+						<line y2={innerHeight} class="stroke-gray-300" />
 						<text text-anchor="middle" dy=".71em" y={innerHeight + 3}>
-							{new Date(tickValue).getHours()}:00
+							{tickValue.getHours()}:{tickValue.getMinutes() < 10 ? '00' : '30'}
 						</text>
 					</g>
 				{/each}
-				{#each yScale.ticks() as tickValue}
+				{#each yScale.ticks(5) as tickValue}
 					<g transform={`translate(0,${yScale(tickValue)})`}>
-						<line x2={innerWidth} stroke="black" />
+						<line x2={innerWidth} class="stroke-gray-300" />
 						<text text-anchor="end" x="-3" dy=".32em">
 							{tickValue}
 						</text>
 					</g>
 				{/each}
 				<path
-					class="stroke-slate-800 fill-none stroke-width-2"
+					class="stroke-slate-800 fill-none"
+					stroke-width="3"
 					d={d3.line()(xValues.map((d, i) => [xScale(d), yScale(yValues[i])]))}
 				>
 				</path>
@@ -96,9 +107,9 @@
 						<circle
 							role="button"
 							tabindex="0"
+							r="2.5"
 							cx={xScale(new Date(d.timestamp))}
 							cy={yScale(d.value)}
-							r="3"
 							class="fill-slate-700"
 							on:focus={() => showTooltip(undefined, d)}
 							on:blur={hideTooltip}
