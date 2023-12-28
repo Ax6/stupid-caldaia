@@ -27,7 +27,6 @@ type BoilerInfo {
   state: State!
   minTemp: Float!
   maxTemp: Float!
-  targetTemp: Float
   programmedIntervals: [ProgrammedInterval!]!
 }
 
@@ -36,6 +35,17 @@ type ProgrammedInterval {
   start: Time!
   duration: Duration!
   targetTemp: Float!
+  repeatDays: [DayOfWeek!]!
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
 }
 
 enum State {
@@ -53,8 +63,8 @@ scalar Duration
 # ---------------------------------------------
 type Mutation {
   updateBoiler(config: BoilerInput!): BoilerInfo!
-  addProgrammedInterval(interval: ProgrammedIntervalInput!): BoilerInfo!
-  removeProgrammedInterval(id: ID!): BoilerInfo!
+  setProgrammedInterval(interval: ProgrammedIntervalInput!): ProgrammedInterval!
+  deleteProgrammedInterval(id: ID!): Boolean!
 }
 
 input BoilerInput {
@@ -67,7 +77,8 @@ input BoilerInput {
 
 input ProgrammedIntervalInput {
   id: ID
-  start: Duration!
+  start: Time!
   duration: Duration!
   targetTemp: Float!
+  repeatDays: [DayOfWeek!]!
 }

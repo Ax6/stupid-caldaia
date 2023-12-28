@@ -6,7 +6,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"stupid-caldaia/controller/graph/model"
 	"time"
 )
@@ -14,51 +13,37 @@ import (
 // UpdateBoiler is the resolver for the updateBoiler field.
 func (r *mutationResolver) UpdateBoiler(ctx context.Context, config model.BoilerInput) (*model.BoilerInfo, error) {
 	if config.State != nil {
-		_, err := r.Boiler.Switch(ctx, *config.State)
+		_, err := r.Resolver.Boiler.Switch(ctx, *config.State)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if config.MinTemp != nil {
-		_, err := r.Boiler.SetMinTemp(ctx, *config.MinTemp)
+		_, err := r.Resolver.Boiler.SetMinTemp(ctx, *config.MinTemp)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if config.MaxTemp != nil {
-		_, err := r.Boiler.SetMaxTemp(ctx, *config.MaxTemp)
+		_, err := r.Resolver.Boiler.SetMaxTemp(ctx, *config.MaxTemp)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	if config.TargetTemp != nil {
-		_, err := r.Boiler.SetTargetTemp(ctx, *config.TargetTemp)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// if config.ProgrammedIntervals != nil {
-	// 	_, err = boilerStore.SetProgrammedIntervals(ctx, config.ProgrammedIntervals)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
 
 	return r.Resolver.Boiler.GetInfo(ctx)
 }
 
-// AddProgrammedInterval is the resolver for the addProgrammedInterval field.
-func (r *mutationResolver) AddProgrammedInterval(ctx context.Context, interval model.ProgrammedIntervalInput) (*model.BoilerInfo, error) {
-	panic(fmt.Errorf("not implemented: AddProgrammedInterval - addProgrammedInterval"))
+// SetProgrammedInterval is the resolver for the setProgrammedInterval field.
+func (r *mutationResolver) SetProgrammedInterval(ctx context.Context, interval model.ProgrammedIntervalInput) (*model.ProgrammedInterval, error) {
+	return r.Boiler.SetProgrammedInterval(ctx, &interval)
 }
 
-// RemoveProgrammedInterval is the resolver for the removeProgrammedInterval field.
-func (r *mutationResolver) RemoveProgrammedInterval(ctx context.Context, id string) (*model.BoilerInfo, error) {
-	panic(fmt.Errorf("not implemented: RemoveProgrammedInterval - removeProgrammedInterval"))
+// DeleteProgrammedInterval is the resolver for the deleteProgrammedInterval field.
+func (r *mutationResolver) DeleteProgrammedInterval(ctx context.Context, id string) (bool, error) {
+	return r.Boiler.DeleteProgrammedInterval(ctx, id)
 }
 
 // Boiler is the resolver for the boiler field.
@@ -68,7 +53,7 @@ func (r *queryResolver) Boiler(ctx context.Context) (*model.BoilerInfo, error) {
 
 // Sensor is the resolver for the sensor field.
 func (r *queryResolver) Sensor(ctx context.Context, name string, position string) (*model.Measure, error) {
-	result, err := r.Sensors[name+":"+position].Get(ctx, nil, nil)
+	result, err := r.Resolver.Sensors[name+":"+position].Get(ctx, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +75,7 @@ func (r *subscriptionResolver) Boiler(ctx context.Context) (<-chan *model.Boiler
 
 // Sensor is the resolver for the sensor field.
 func (r *subscriptionResolver) Sensor(ctx context.Context, name string, position string) (<-chan *model.Measure, error) {
-	return r.Sensors[name+":"+position].Listen(ctx)
+	return r.Resolver.Sensors[name+":"+position].Listen(ctx)
 }
 
 // Mutation returns MutationResolver implementation.

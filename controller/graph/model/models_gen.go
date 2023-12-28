@@ -13,7 +13,6 @@ type BoilerInfo struct {
 	State               State                 `json:"state"`
 	MinTemp             float64               `json:"minTemp"`
 	MaxTemp             float64               `json:"maxTemp"`
-	TargetTemp          *float64              `json:"targetTemp,omitempty"`
 	ProgrammedIntervals []*ProgrammedInterval `json:"programmedIntervals"`
 }
 
@@ -35,13 +34,66 @@ type ProgrammedInterval struct {
 	Start      time.Time     `json:"start"`
 	Duration   time.Duration `json:"duration"`
 	TargetTemp float64       `json:"targetTemp"`
+	RepeatDays []DayOfWeek   `json:"repeatDays"`
 }
 
 type ProgrammedIntervalInput struct {
 	ID         *string       `json:"id,omitempty"`
-	Start      time.Duration `json:"start"`
+	Start      time.Time     `json:"start"`
 	Duration   time.Duration `json:"duration"`
 	TargetTemp float64       `json:"targetTemp"`
+	RepeatDays []DayOfWeek   `json:"repeatDays"`
+}
+
+type DayOfWeek string
+
+const (
+	DayOfWeekMonday    DayOfWeek = "MONDAY"
+	DayOfWeekTuesday   DayOfWeek = "TUESDAY"
+	DayOfWeekWednesday DayOfWeek = "WEDNESDAY"
+	DayOfWeekThursday  DayOfWeek = "THURSDAY"
+	DayOfWeekFriday    DayOfWeek = "FRIDAY"
+	DayOfWeekSaturday  DayOfWeek = "SATURDAY"
+	DayOfWeekSunday    DayOfWeek = "SUNDAY"
+)
+
+var AllDayOfWeek = []DayOfWeek{
+	DayOfWeekMonday,
+	DayOfWeekTuesday,
+	DayOfWeekWednesday,
+	DayOfWeekThursday,
+	DayOfWeekFriday,
+	DayOfWeekSaturday,
+	DayOfWeekSunday,
+}
+
+func (e DayOfWeek) IsValid() bool {
+	switch e {
+	case DayOfWeekMonday, DayOfWeekTuesday, DayOfWeekWednesday, DayOfWeekThursday, DayOfWeekFriday, DayOfWeekSaturday, DayOfWeekSunday:
+		return true
+	}
+	return false
+}
+
+func (e DayOfWeek) String() string {
+	return string(e)
+}
+
+func (e *DayOfWeek) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DayOfWeek(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DayOfWeek", str)
+	}
+	return nil
+}
+
+func (e DayOfWeek) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 type State string

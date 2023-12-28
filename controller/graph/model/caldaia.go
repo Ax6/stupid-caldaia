@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/stianeikeland/go-rpio/v4"
@@ -77,17 +78,78 @@ func (c *Boiler) SetMaxTemp(ctx context.Context, temp float64) (*float64, error)
 	return &info.MaxTemp, err
 }
 
-func (c *Boiler) SetTargetTemp(ctx context.Context, temp float64) (*float64, error) {
+func (c *Boiler) SetProgrammedInterval(ctx context.Context, opt *ProgrammedIntervalInput) (*ProgrammedInterval, error) {
 	info, err := c.GetInfo(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if temp < info.MinTemp || temp > info.MaxTemp {
-		return &info.MaxTemp, fmt.Errorf("Invalid target temperature")
+	if opt.TargetTemp < info.MinTemp || opt.TargetTemp > info.MaxTemp {
+		return nil, fmt.Errorf("Target temperature out of bounds")
 	}
-	info.TargetTemp = &temp
+
+	// Map programmed intervals to a map for easier lookup
+	lookupProgrammedIntervals := make(map[string]*ProgrammedInterval)
+	for _, interval := range info.ProgrammedIntervals {
+		lookupProgrammedIntervals[interval.ID] = interval
+	}
+
+	// If ID is present in the opt, use that, otherwise generate a new one
+	inputID := *opt.ID
+	if opt.ID == nil {
+		// Create ours if not present
+		inputID = fmt.Sprintf("%d", time.Now().UnixNano())
+	} else if lookupProgrammedIntervals[*opt.ID] == nil {
+		// If present but not in the map, return an error
+		return nil, fmt.Errorf("Specified ID not present in programmed intervals")
+	}
+
+	programmedInterval := ProgrammedInterval{
+		ID:         inputID,
+		Start:      opt.Start,
+		Duration:   opt.Duration,
+		TargetTemp: opt.TargetTemp,
+	}
+
+	lookupProgrammedIntervals[inputID] = &programmedInterval
+
+	// Convert back to a slice
+	programmedIntervals := make([]*ProgrammedInterval, 0, len(lookupProgrammedIntervals))
+	for _, interval := range lookupProgrammedIntervals {
+		programmedIntervals = append(programmedIntervals, interval)
+	}
+	info.ProgrammedIntervals = programmedIntervals
+
 	err = c.save(ctx, info)
-	return info.TargetTemp, err
+	return &programmedInterval, err
+}
+
+func (c *Boiler) DeleteProgrammedInterval(ctx context.Context, id string) (bool, error) {
+	info, err := c.GetInfo(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	// Map programmed intervals to a map for easier lookup
+	lookupProgrammedIntervals := make(map[string]*ProgrammedInterval)
+	for _, interval := range info.ProgrammedIntervals {
+		lookupProgrammedIntervals[interval.ID] = interval
+	}
+
+	if lookupProgrammedIntervals[id] == nil {
+		return false, fmt.Errorf("Specified ID not present in programmed intervals")
+	}
+
+	delete(lookupProgrammedIntervals, id)
+
+	// Convert back to a slice
+	programmedIntervals := make([]*ProgrammedInterval, 0, len(lookupProgrammedIntervals))
+	for _, interval := range lookupProgrammedIntervals {
+		programmedIntervals = append(programmedIntervals, interval)
+	}
+	info.ProgrammedIntervals = programmedIntervals
+
+	err = c.save(ctx, info)
+	return true, err
 }
 
 func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {
@@ -116,7 +178,6 @@ func (c *Boiler) GetInfo(ctx context.Context) (*BoilerInfo, error) {
 			State:               StateUnknown,
 			MinTemp:             c.config.DefaultMinTemperature,
 			MaxTemp:             c.config.DefaultMaxTemperature,
-			TargetTemp:          nil,
 			ProgrammedIntervals: nil,
 		}
 		err := c.save(ctx, defaultInfo) // Save default values

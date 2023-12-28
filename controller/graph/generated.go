@@ -55,7 +55,6 @@ type ComplexityRoot struct {
 		MinTemp             func(childComplexity int) int
 		ProgrammedIntervals func(childComplexity int) int
 		State               func(childComplexity int) int
-		TargetTemp          func(childComplexity int) int
 	}
 
 	Measure struct {
@@ -64,14 +63,15 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddProgrammedInterval    func(childComplexity int, interval model.ProgrammedIntervalInput) int
-		RemoveProgrammedInterval func(childComplexity int, id string) int
+		DeleteProgrammedInterval func(childComplexity int, id string) int
+		SetProgrammedInterval    func(childComplexity int, interval model.ProgrammedIntervalInput) int
 		UpdateBoiler             func(childComplexity int, config model.BoilerInput) int
 	}
 
 	ProgrammedInterval struct {
 		Duration   func(childComplexity int) int
 		ID         func(childComplexity int) int
+		RepeatDays func(childComplexity int) int
 		Start      func(childComplexity int) int
 		TargetTemp func(childComplexity int) int
 	}
@@ -90,8 +90,8 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	UpdateBoiler(ctx context.Context, config model.BoilerInput) (*model.BoilerInfo, error)
-	AddProgrammedInterval(ctx context.Context, interval model.ProgrammedIntervalInput) (*model.BoilerInfo, error)
-	RemoveProgrammedInterval(ctx context.Context, id string) (*model.BoilerInfo, error)
+	SetProgrammedInterval(ctx context.Context, interval model.ProgrammedIntervalInput) (*model.ProgrammedInterval, error)
+	DeleteProgrammedInterval(ctx context.Context, id string) (bool, error)
 }
 type QueryResolver interface {
 	Boiler(ctx context.Context) (*model.BoilerInfo, error)
@@ -150,13 +150,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.BoilerInfo.State(childComplexity), true
 
-	case "BoilerInfo.targetTemp":
-		if e.complexity.BoilerInfo.TargetTemp == nil {
-			break
-		}
-
-		return e.complexity.BoilerInfo.TargetTemp(childComplexity), true
-
 	case "Measure.timestamp":
 		if e.complexity.Measure.Timestamp == nil {
 			break
@@ -171,29 +164,29 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Measure.Value(childComplexity), true
 
-	case "Mutation.addProgrammedInterval":
-		if e.complexity.Mutation.AddProgrammedInterval == nil {
+	case "Mutation.deleteProgrammedInterval":
+		if e.complexity.Mutation.DeleteProgrammedInterval == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_addProgrammedInterval_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_deleteProgrammedInterval_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddProgrammedInterval(childComplexity, args["interval"].(model.ProgrammedIntervalInput)), true
+		return e.complexity.Mutation.DeleteProgrammedInterval(childComplexity, args["id"].(string)), true
 
-	case "Mutation.removeProgrammedInterval":
-		if e.complexity.Mutation.RemoveProgrammedInterval == nil {
+	case "Mutation.setProgrammedInterval":
+		if e.complexity.Mutation.SetProgrammedInterval == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_removeProgrammedInterval_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_setProgrammedInterval_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RemoveProgrammedInterval(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.SetProgrammedInterval(childComplexity, args["interval"].(model.ProgrammedIntervalInput)), true
 
 	case "Mutation.updateBoiler":
 		if e.complexity.Mutation.UpdateBoiler == nil {
@@ -220,6 +213,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ProgrammedInterval.ID(childComplexity), true
+
+	case "ProgrammedInterval.repeatDays":
+		if e.complexity.ProgrammedInterval.RepeatDays == nil {
+			break
+		}
+
+		return e.complexity.ProgrammedInterval.RepeatDays(childComplexity), true
 
 	case "ProgrammedInterval.start":
 		if e.complexity.ProgrammedInterval.Start == nil {
@@ -428,22 +428,7 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Mutation_addProgrammedInterval_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.ProgrammedIntervalInput
-	if tmp, ok := rawArgs["interval"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("interval"))
-		arg0, err = ec.unmarshalNProgrammedIntervalInput2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["interval"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_removeProgrammedInterval_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_deleteProgrammedInterval_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -455,6 +440,21 @@ func (ec *executionContext) field_Mutation_removeProgrammedInterval_args(ctx con
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_setProgrammedInterval_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.ProgrammedIntervalInput
+	if tmp, ok := rawArgs["interval"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("interval"))
+		arg0, err = ec.unmarshalNProgrammedIntervalInput2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["interval"] = arg0
 	return args, nil
 }
 
@@ -748,47 +748,6 @@ func (ec *executionContext) fieldContext_BoilerInfo_maxTemp(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _BoilerInfo_targetTemp(ctx context.Context, field graphql.CollectedField, obj *model.BoilerInfo) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_BoilerInfo_targetTemp(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.TargetTemp, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*float64)
-	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_BoilerInfo_targetTemp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "BoilerInfo",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _BoilerInfo_programmedIntervals(ctx context.Context, field graphql.CollectedField, obj *model.BoilerInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
 	if err != nil {
@@ -836,6 +795,8 @@ func (ec *executionContext) fieldContext_BoilerInfo_programmedIntervals(ctx cont
 				return ec.fieldContext_ProgrammedInterval_duration(ctx, field)
 			case "targetTemp":
 				return ec.fieldContext_ProgrammedInterval_targetTemp(ctx, field)
+			case "repeatDays":
+				return ec.fieldContext_ProgrammedInterval_repeatDays(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ProgrammedInterval", field.Name)
 		},
@@ -976,8 +937,6 @@ func (ec *executionContext) fieldContext_Mutation_updateBoiler(ctx context.Conte
 				return ec.fieldContext_BoilerInfo_minTemp(ctx, field)
 			case "maxTemp":
 				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
-			case "targetTemp":
-				return ec.fieldContext_BoilerInfo_targetTemp(ctx, field)
 			case "programmedIntervals":
 				return ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
 			}
@@ -998,8 +957,8 @@ func (ec *executionContext) fieldContext_Mutation_updateBoiler(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_addProgrammedInterval(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_addProgrammedInterval(ctx, field)
+func (ec *executionContext) _Mutation_setProgrammedInterval(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_setProgrammedInterval(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1012,7 +971,7 @@ func (ec *executionContext) _Mutation_addProgrammedInterval(ctx context.Context,
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddProgrammedInterval(rctx, fc.Args["interval"].(model.ProgrammedIntervalInput))
+		return ec.resolvers.Mutation().SetProgrammedInterval(rctx, fc.Args["interval"].(model.ProgrammedIntervalInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1024,12 +983,12 @@ func (ec *executionContext) _Mutation_addProgrammedInterval(ctx context.Context,
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.BoilerInfo)
+	res := resTmp.(*model.ProgrammedInterval)
 	fc.Result = res
-	return ec.marshalNBoilerInfo2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInfo(ctx, field.Selections, res)
+	return ec.marshalNProgrammedInterval2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedInterval(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_addProgrammedInterval(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_setProgrammedInterval(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -1037,18 +996,18 @@ func (ec *executionContext) fieldContext_Mutation_addProgrammedInterval(ctx cont
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "state":
-				return ec.fieldContext_BoilerInfo_state(ctx, field)
-			case "minTemp":
-				return ec.fieldContext_BoilerInfo_minTemp(ctx, field)
-			case "maxTemp":
-				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
+			case "id":
+				return ec.fieldContext_ProgrammedInterval_id(ctx, field)
+			case "start":
+				return ec.fieldContext_ProgrammedInterval_start(ctx, field)
+			case "duration":
+				return ec.fieldContext_ProgrammedInterval_duration(ctx, field)
 			case "targetTemp":
-				return ec.fieldContext_BoilerInfo_targetTemp(ctx, field)
-			case "programmedIntervals":
-				return ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
+				return ec.fieldContext_ProgrammedInterval_targetTemp(ctx, field)
+			case "repeatDays":
+				return ec.fieldContext_ProgrammedInterval_repeatDays(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type BoilerInfo", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type ProgrammedInterval", field.Name)
 		},
 	}
 	defer func() {
@@ -1058,15 +1017,15 @@ func (ec *executionContext) fieldContext_Mutation_addProgrammedInterval(ctx cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_addProgrammedInterval_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_setProgrammedInterval_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_removeProgrammedInterval(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_removeProgrammedInterval(ctx, field)
+func (ec *executionContext) _Mutation_deleteProgrammedInterval(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteProgrammedInterval(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1079,7 +1038,7 @@ func (ec *executionContext) _Mutation_removeProgrammedInterval(ctx context.Conte
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().RemoveProgrammedInterval(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Mutation().DeleteProgrammedInterval(rctx, fc.Args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1091,31 +1050,19 @@ func (ec *executionContext) _Mutation_removeProgrammedInterval(ctx context.Conte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.BoilerInfo)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalNBoilerInfo2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInfo(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_removeProgrammedInterval(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_deleteProgrammedInterval(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "state":
-				return ec.fieldContext_BoilerInfo_state(ctx, field)
-			case "minTemp":
-				return ec.fieldContext_BoilerInfo_minTemp(ctx, field)
-			case "maxTemp":
-				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
-			case "targetTemp":
-				return ec.fieldContext_BoilerInfo_targetTemp(ctx, field)
-			case "programmedIntervals":
-				return ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type BoilerInfo", field.Name)
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	defer func() {
@@ -1125,7 +1072,7 @@ func (ec *executionContext) fieldContext_Mutation_removeProgrammedInterval(ctx c
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_removeProgrammedInterval_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_deleteProgrammedInterval_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -1308,6 +1255,50 @@ func (ec *executionContext) fieldContext_ProgrammedInterval_targetTemp(ctx conte
 	return fc, nil
 }
 
+func (ec *executionContext) _ProgrammedInterval_repeatDays(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProgrammedInterval_repeatDays(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RepeatDays, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.DayOfWeek)
+	fc.Result = res
+	return ec.marshalNDayOfWeek2ᚕstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeekᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProgrammedInterval_repeatDays(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProgrammedInterval",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DayOfWeek does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_boiler(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_boiler(ctx, field)
 	if err != nil {
@@ -1353,8 +1344,6 @@ func (ec *executionContext) fieldContext_Query_boiler(ctx context.Context, field
 				return ec.fieldContext_BoilerInfo_minTemp(ctx, field)
 			case "maxTemp":
 				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
-			case "targetTemp":
-				return ec.fieldContext_BoilerInfo_targetTemp(ctx, field)
 			case "programmedIntervals":
 				return ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
 			}
@@ -1671,8 +1660,6 @@ func (ec *executionContext) fieldContext_Subscription_boiler(ctx context.Context
 				return ec.fieldContext_BoilerInfo_minTemp(ctx, field)
 			case "maxTemp":
 				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
-			case "targetTemp":
-				return ec.fieldContext_BoilerInfo_targetTemp(ctx, field)
 			case "programmedIntervals":
 				return ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
 			}
@@ -3592,7 +3579,7 @@ func (ec *executionContext) unmarshalInputProgrammedIntervalInput(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "start", "duration", "targetTemp"}
+	fieldsInOrder := [...]string{"id", "start", "duration", "targetTemp", "repeatDays"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -3608,7 +3595,7 @@ func (ec *executionContext) unmarshalInputProgrammedIntervalInput(ctx context.Co
 			it.ID = data
 		case "start":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
-			data, err := ec.unmarshalNDuration2timeᚐDuration(ctx, v)
+			data, err := ec.unmarshalNTime2timeᚐTime(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3627,6 +3614,13 @@ func (ec *executionContext) unmarshalInputProgrammedIntervalInput(ctx context.Co
 				return it, err
 			}
 			it.TargetTemp = data
+		case "repeatDays":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repeatDays"))
+			data, err := ec.unmarshalNDayOfWeek2ᚕstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeekᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RepeatDays = data
 		}
 	}
 
@@ -3667,8 +3661,6 @@ func (ec *executionContext) _BoilerInfo(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "targetTemp":
-			out.Values[i] = ec._BoilerInfo_targetTemp(ctx, field, obj)
 		case "programmedIntervals":
 			out.Values[i] = ec._BoilerInfo_programmedIntervals(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -3767,16 +3759,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "addProgrammedInterval":
+		case "setProgrammedInterval":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_addProgrammedInterval(ctx, field)
+				return ec._Mutation_setProgrammedInterval(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "removeProgrammedInterval":
+		case "deleteProgrammedInterval":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_removeProgrammedInterval(ctx, field)
+				return ec._Mutation_deleteProgrammedInterval(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -3832,6 +3824,11 @@ func (ec *executionContext) _ProgrammedInterval(ctx context.Context, sel ast.Sel
 			}
 		case "targetTemp":
 			out.Values[i] = ec._ProgrammedInterval_targetTemp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "repeatDays":
+			out.Values[i] = ec._ProgrammedInterval_repeatDays(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4353,6 +4350,77 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) unmarshalNDayOfWeek2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeek(ctx context.Context, v interface{}) (model.DayOfWeek, error) {
+	var res model.DayOfWeek
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDayOfWeek2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeek(ctx context.Context, sel ast.SelectionSet, v model.DayOfWeek) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNDayOfWeek2ᚕstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeekᚄ(ctx context.Context, v interface{}) ([]model.DayOfWeek, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]model.DayOfWeek, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNDayOfWeek2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeek(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNDayOfWeek2ᚕstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeekᚄ(ctx context.Context, sel ast.SelectionSet, v []model.DayOfWeek) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDayOfWeek2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeek(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNDuration2timeᚐDuration(ctx context.Context, v interface{}) (time.Duration, error) {
 	res, err := graphql.UnmarshalDuration(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4454,6 +4522,10 @@ func (ec *executionContext) marshalNMeasure2ᚖstupidᚑcaldaiaᚋcontrollerᚋg
 		return graphql.Null
 	}
 	return ec._Measure(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNProgrammedInterval2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedInterval(ctx context.Context, sel ast.SelectionSet, v model.ProgrammedInterval) graphql.Marshaler {
+	return ec._ProgrammedInterval(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNProgrammedInterval2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ProgrammedInterval) graphql.Marshaler {
