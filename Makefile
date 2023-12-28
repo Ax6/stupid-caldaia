@@ -1,23 +1,12 @@
-TARGET_ADDRESS=raspberrypi.local
-TARGET_SHH=pi@192.168.1.112
-APP_IMAGE_NAME=stupid-caldaia
-DOCKER_REGISTRY=$(TARGET_ADDRESS):5000
+APP_IMAGE=stupid-caldaia
+CONTROLLER_IMAGE=stupid-caldaia-controller
+WORKER_IMAGE=stupid-caldaia-worker
 
-APP_IMAGE = $(DOCKER_REGISTRY)/$(APP_IMAGE_NAME)
+build-app:
+	docker build -t $(APP_IMAGE) -f dockerfiles/app.Dockerfile app
 
-bundle:
-	docker build -t $(APP_IMAGE) --platform=linux/arm/v7 -f dockerfiles/app.Dockerfile app
+build-controller:
+	docker build -t $(CONTROLLER_IMAGE) -f dockerfiles/controller.Dockerfile controller
 
-
-# Since my company blocks everything we have to push manually the image via ssh to the target machine
-# Make sure pv is installed first: sudo apt-get install pv
-push:
-	docker push $(APP_IMAGE)
-
-transfer:
-	docker save $(APP_IMAGE) | pv | ssh $(TARGET_SHH) "docker load"
-
-
-# We need to host a registry on the target machine
-target-dependencies:
-	ssh $(TARGET_SHH) "sudo docker run -d -p 5000:5000 --restart=always --name registry registry"
+build-worker:
+	docker build -t $(WORKER_IMAGE) -f dockerfiles/controller.Dockerfile lettore
