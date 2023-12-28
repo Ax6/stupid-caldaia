@@ -3,11 +3,11 @@ TARGET_MACHINE=pi@192.168.1.112
 CONTROLLER_IMAGE=stupid-caldaia-controller
 WORKER_IMAGE=stupid-caldaia-worker
 
-run:
-	docker-compose up
+restart:
+	docker-compose restart
 
-run-on-target:
-	ssh $(TARGET_MACHINE) 'cd stupid-caldaia && make run'
+restart-target:
+	ssh $(TARGET_MACHINE) 'cd stupid-caldaia && make restart'
 
 bundle-client: build-app transfer-app
 

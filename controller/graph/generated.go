@@ -77,14 +77,14 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Boiler           func(childComplexity int) int
-		Temperature      func(childComplexity int, position string) int
-		TemperatureRange func(childComplexity int, from *time.Time, to *time.Time, position string) int
+		Boiler      func(childComplexity int) int
+		Sensor      func(childComplexity int, name string, position string) int
+		SensorRange func(childComplexity int, name string, position string, from *time.Time, to *time.Time) int
 	}
 
 	Subscription struct {
-		Boiler      func(childComplexity int) int
-		Temperature func(childComplexity int, position string) int
+		Boiler func(childComplexity int) int
+		Sensor func(childComplexity int, name string, position string) int
 	}
 }
 
@@ -95,12 +95,12 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Boiler(ctx context.Context) (*model.Boiler, error)
-	Temperature(ctx context.Context, position string) (*model.Measure, error)
-	TemperatureRange(ctx context.Context, from *time.Time, to *time.Time, position string) ([]*model.Measure, error)
+	Sensor(ctx context.Context, name string, position string) (*model.Measure, error)
+	SensorRange(ctx context.Context, name string, position string, from *time.Time, to *time.Time) ([]*model.Measure, error)
 }
 type SubscriptionResolver interface {
 	Boiler(ctx context.Context) (<-chan *model.Boiler, error)
-	Temperature(ctx context.Context, position string) (<-chan *model.Measure, error)
+	Sensor(ctx context.Context, name string, position string) (<-chan *model.Measure, error)
 }
 
 type executableSchema struct {
@@ -242,29 +242,29 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Boiler(childComplexity), true
 
-	case "Query.temperature":
-		if e.complexity.Query.Temperature == nil {
+	case "Query.sensor":
+		if e.complexity.Query.Sensor == nil {
 			break
 		}
 
-		args, err := ec.field_Query_temperature_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_sensor_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.Temperature(childComplexity, args["position"].(string)), true
+		return e.complexity.Query.Sensor(childComplexity, args["name"].(string), args["position"].(string)), true
 
-	case "Query.temperatureRange":
-		if e.complexity.Query.TemperatureRange == nil {
+	case "Query.sensorRange":
+		if e.complexity.Query.SensorRange == nil {
 			break
 		}
 
-		args, err := ec.field_Query_temperatureRange_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_sensorRange_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.TemperatureRange(childComplexity, args["from"].(*time.Time), args["to"].(*time.Time), args["position"].(string)), true
+		return e.complexity.Query.SensorRange(childComplexity, args["name"].(string), args["position"].(string), args["from"].(*time.Time), args["to"].(*time.Time)), true
 
 	case "Subscription.boiler":
 		if e.complexity.Subscription.Boiler == nil {
@@ -273,17 +273,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Subscription.Boiler(childComplexity), true
 
-	case "Subscription.temperature":
-		if e.complexity.Subscription.Temperature == nil {
+	case "Subscription.sensor":
+		if e.complexity.Subscription.Sensor == nil {
 			break
 		}
 
-		args, err := ec.field_Subscription_temperature_args(context.TODO(), rawArgs)
+		args, err := ec.field_Subscription_sensor_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Subscription.Temperature(childComplexity, args["position"].(string)), true
+		return e.complexity.Subscription.Sensor(childComplexity, args["name"].(string), args["position"].(string)), true
 
 	}
 	return 0, false
@@ -488,66 +488,93 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_temperatureRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_sensorRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *time.Time
+	var arg0 string
+	if tmp, ok := rawArgs["name"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["position"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("position"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["position"] = arg1
+	var arg2 *time.Time
 	if tmp, ok := rawArgs["from"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
-		arg0, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
+		arg2, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["from"] = arg0
-	var arg1 *time.Time
+	args["from"] = arg2
+	var arg3 *time.Time
 	if tmp, ok := rawArgs["to"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
-		arg1, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
+		arg3, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["to"] = arg1
-	var arg2 string
-	if tmp, ok := rawArgs["position"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("position"))
-		arg2, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["position"] = arg2
+	args["to"] = arg3
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_temperature_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_sensor_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
-	if tmp, ok := rawArgs["position"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("position"))
+	if tmp, ok := rawArgs["name"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["position"] = arg0
+	args["name"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["position"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("position"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["position"] = arg1
 	return args, nil
 }
 
-func (ec *executionContext) field_Subscription_temperature_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Subscription_sensor_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
-	if tmp, ok := rawArgs["position"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("position"))
+	if tmp, ok := rawArgs["name"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["position"] = arg0
+	args["name"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["position"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("position"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["position"] = arg1
 	return args, nil
 }
 
@@ -1337,8 +1364,8 @@ func (ec *executionContext) fieldContext_Query_boiler(ctx context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_temperature(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_temperature(ctx, field)
+func (ec *executionContext) _Query_sensor(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_sensor(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1351,7 +1378,7 @@ func (ec *executionContext) _Query_temperature(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Temperature(rctx, fc.Args["position"].(string))
+		return ec.resolvers.Query().Sensor(rctx, fc.Args["name"].(string), fc.Args["position"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1365,7 +1392,7 @@ func (ec *executionContext) _Query_temperature(ctx context.Context, field graphq
 	return ec.marshalOMeasure2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐMeasure(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_temperature(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_sensor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -1388,15 +1415,15 @@ func (ec *executionContext) fieldContext_Query_temperature(ctx context.Context, 
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_temperature_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_sensor_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_temperatureRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_temperatureRange(ctx, field)
+func (ec *executionContext) _Query_sensorRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_sensorRange(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1409,7 +1436,7 @@ func (ec *executionContext) _Query_temperatureRange(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().TemperatureRange(rctx, fc.Args["from"].(*time.Time), fc.Args["to"].(*time.Time), fc.Args["position"].(string))
+		return ec.resolvers.Query().SensorRange(rctx, fc.Args["name"].(string), fc.Args["position"].(string), fc.Args["from"].(*time.Time), fc.Args["to"].(*time.Time))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1426,7 +1453,7 @@ func (ec *executionContext) _Query_temperatureRange(ctx context.Context, field g
 	return ec.marshalNMeasure2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐMeasureᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_temperatureRange(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_sensorRange(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -1449,7 +1476,7 @@ func (ec *executionContext) fieldContext_Query_temperatureRange(ctx context.Cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_temperatureRange_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_sensorRange_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -1655,8 +1682,8 @@ func (ec *executionContext) fieldContext_Subscription_boiler(ctx context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Subscription_temperature(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
-	fc, err := ec.fieldContext_Subscription_temperature(ctx, field)
+func (ec *executionContext) _Subscription_sensor(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_sensor(ctx, field)
 	if err != nil {
 		return nil
 	}
@@ -1669,7 +1696,7 @@ func (ec *executionContext) _Subscription_temperature(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().Temperature(rctx, fc.Args["position"].(string))
+		return ec.resolvers.Subscription().Sensor(rctx, fc.Args["name"].(string), fc.Args["position"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1700,7 +1727,7 @@ func (ec *executionContext) _Subscription_temperature(ctx context.Context, field
 	}
 }
 
-func (ec *executionContext) fieldContext_Subscription_temperature(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Subscription_sensor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Subscription",
 		Field:      field,
@@ -1723,7 +1750,7 @@ func (ec *executionContext) fieldContext_Subscription_temperature(ctx context.Co
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Subscription_temperature_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Subscription_sensor_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3872,7 +3899,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "temperature":
+		case "sensor":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -3881,7 +3908,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_temperature(ctx, field)
+				res = ec._Query_sensor(ctx, field)
 				return res
 			}
 
@@ -3891,7 +3918,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "temperatureRange":
+		case "sensorRange":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -3900,7 +3927,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_temperatureRange(ctx, field)
+				res = ec._Query_sensorRange(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -3959,8 +3986,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	switch fields[0].Name {
 	case "boiler":
 		return ec._Subscription_boiler(ctx, fields[0])
-	case "temperature":
-		return ec._Subscription_temperature(ctx, fields[0])
+	case "sensor":
+		return ec._Subscription_sensor(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}

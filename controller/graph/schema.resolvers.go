@@ -68,9 +68,9 @@ func (r *queryResolver) Boiler(ctx context.Context) (*model.Boiler, error) {
 	return &boilerStore.Boiler, err
 }
 
-// Temperature is the resolver for the temperature field.
-func (r *queryResolver) Temperature(ctx context.Context, position string) (*model.Measure, error) {
-	result, err := r.Sensors["temperatura:"+position].Get(ctx, nil, nil)
+// Sensor is the resolver for the sensor field.
+func (r *queryResolver) Sensor(ctx context.Context, name string, position string) (*model.Measure, error) {
+	result, err := r.Sensors[name+":"+position].Get(ctx, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +80,9 @@ func (r *queryResolver) Temperature(ctx context.Context, position string) (*mode
 	return result[0], nil
 }
 
-// TemperatureRange is the resolver for the temperatureRange field.
-func (r *queryResolver) TemperatureRange(ctx context.Context, from *time.Time, to *time.Time, position string) ([]*model.Measure, error) {
-	return r.Sensors["temperatura:"+position].Get(ctx, from, to)
+// SensorRange is the resolver for the sensorRange field.
+func (r *queryResolver) SensorRange(ctx context.Context, name string, position string, from *time.Time, to *time.Time) ([]*model.Measure, error) {
+	return r.Sensors[name+":"+position].Get(ctx, from, to)
 }
 
 // Boiler is the resolver for the boiler field.
@@ -94,9 +94,9 @@ func (r *subscriptionResolver) Boiler(ctx context.Context) (<-chan *model.Boiler
 	return boiler.Listen(ctx)
 }
 
-// Temperature is the resolver for the temperature field.
-func (r *subscriptionResolver) Temperature(ctx context.Context, position string) (<-chan *model.Measure, error) {
-	return r.Sensors["temperatura:"+position].Listen(ctx)
+// Sensor is the resolver for the sensor field.
+func (r *subscriptionResolver) Sensor(ctx context.Context, name string, position string) (<-chan *model.Measure, error) {
+	return r.Sensors[name+":"+position].Listen(ctx)
 }
 
 // Mutation returns MutationResolver implementation.

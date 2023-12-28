@@ -4,13 +4,18 @@
 
 type Subscription {
   boiler: Boiler!
-  temperature(position: String!): Measure!
+  sensor(name: String!, position: String!): Measure!
 }
 
 type Query {
   boiler: Boiler!
-  temperature(position: String!): Measure
-  temperatureRange(from: Time, to: Time, position: String!): [Measure!]!
+  sensor(name: String!, position: String!): Measure
+  sensorRange(
+    name: String!
+    position: String!
+    from: Time
+    to: Time
+  ): [Measure!]!
 }
 
 type Measure {
