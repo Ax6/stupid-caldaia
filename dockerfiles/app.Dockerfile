@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package.json /app
 
 RUN npm config set registry https://registry.npmjs.org/
-RUN npm install --verbose --production
+RUN npm install --verbose
 
 COPY . ./
 ENV PUBLIC_SERVER_HOST=controller
