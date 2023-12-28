@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -180,14 +181,23 @@ func (c *Boiler) GetInfo(ctx context.Context) (*BoilerInfo, error) {
 }
 
 func (c *Boiler) save(ctx context.Context, info *BoilerInfo) error {
+	// Serialise data
 	data, err := json.Marshal(info)
 	if err != nil {
 		return err
 	}
-	err = c.client.Set(ctx, c.Config.Name, data, 0).Err()
+	storedData, err := c.client.Get(ctx, c.Config.Name).Result()
 	if err != nil {
 		return err
 	}
-	err = c.client.Publish(ctx, c.Config.Name, data).Err()
+	diff := cmp.Diff(data, []byte(storedData))
+	if diff != "" {
+		fmt.Println(diff)
+		err = c.client.Set(ctx, c.Config.Name, data, 0).Err()
+		if err != nil {
+			return err
+		}
+		err = c.client.Publish(ctx, c.Config.Name, data).Err()
+	}
 	return err
 }

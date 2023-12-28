@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"stupid-caldaia/controller/graph/model"
 	"stupid-caldaia/controller/store"
+	"sync"
 	"time"
 
 	"github.com/parMaster/htu21"
@@ -21,6 +23,7 @@ const (
 var (
 	htu21Data   physic.Env
 	htu21Device *htu21.Dev
+	wg          sync.WaitGroup
 )
 
 func ObserveState(ctx context.Context, boiler *model.Boiler) {
@@ -33,14 +36,21 @@ func ObserveState(ctx context.Context, boiler *model.Boiler) {
 	if err != nil {
 		log.Fatalf("Could not listen to boiler...")
 	}
+
 	for info := range listener {
-		switch info.State {
-		case model.StateOn:
-			pin.High()
-		case model.StateOff:
-			pin.Low()
+		select {
+		case <-ctx.Done():
+			return
 		default:
-			break
+			fmt.Println("State has changed, updating gpio...")
+			switch info.State {
+			case model.StateOn:
+				pin.High()
+			case model.StateOff:
+				pin.Low()
+			default:
+				break
+			}
 		}
 	}
 	defer func() {
@@ -52,52 +62,67 @@ func ObserveState(ctx context.Context, boiler *model.Boiler) {
 
 func ObserveSensor(ctx context.Context, sensors map[string]*model.Sensor) {
 	for {
-		// zzz
-		time.Sleep(1 * time.Second)
-		// Read sensors...
-		if _, err := host.Init(); err != nil {
-			log.Fatal(err)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			// zzz
+			time.Sleep(1 * time.Second)
+			// Read sensors...
+			if _, err := host.Init(); err != nil {
+				log.Fatal(err)
+			}
+
+			// Use i2creg I²C bus registry to find the first available I²C bus.
+			b, err := i2creg.Open("1")
+			if err != nil {
+				log.Fatalf("failed to open I²C: %v", err)
+			}
+
+			htu21Device, err = htu21.NewI2C(b, 0x40)
+			if err != nil {
+				log.Fatalf("failed to initialize htu21: %v", err)
+			}
+
+			// Measure
+			if err := htu21Device.Sense(&htu21Data); err != nil {
+				log.Fatal(err)
+			}
+
+			// Add to database
+			sensors["temperatura:centrale"].AddSample(ctx, &model.Measure{
+				Timestamp: time.Now(),
+				Value:     htu21Data.Temperature.Celsius(),
+			})
+
+			sensors["umidita:centrale"].AddSample(ctx, &model.Measure{
+				Timestamp: time.Now(),
+				Value:     float64(htu21Data.Humidity / physic.MilliRH * physic.PercentRH),
+			})
 		}
-
-		// Use i2creg I²C bus registry to find the first available I²C bus.
-		b, err := i2creg.Open("1")
-		if err != nil {
-			log.Fatalf("failed to open I²C: %v", err)
-		}
-
-		htu21Device, err = htu21.NewI2C(b, 0x40)
-		if err != nil {
-			log.Fatalf("failed to initialize htu21: %v", err)
-		}
-
-		// Measure
-		if err := htu21Device.Sense(&htu21Data); err != nil {
-			log.Fatal(err)
-		}
-
-		// Add to database
-		sensors["temperatura:centrale"].AddSample(ctx, &model.Measure{
-			Timestamp: time.Now(),
-			Value:     htu21Data.Temperature.Celsius(),
-		})
-
-		sensors["umidita:centrale"].AddSample(ctx, &model.Measure{
-			Timestamp: time.Now(),
-			Value:     float64(htu21Data.Humidity / physic.MilliRH * physic.PercentRH),
-		})
 	}
 }
 
 func main() {
-	ctx := context.Background()
-
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	config, err := store.LoadConfig()
 	if err != nil {
 		panic(err)
 	}
 
+	wg.Add(2)
 	_, sensors, boiler := config.CreateObjects(ctx)
 
-	go ObserveSensor(ctx, sensors)
-	go ObserveState(ctx, boiler)
+	// Start go routines
+	go func() {
+		defer wg.Done()
+		ObserveSensor(ctx, sensors)
+	}()
+
+	go func() {
+		defer wg.Done()
+		ObserveState(ctx, boiler)
+	}()
+	wg.Wait()
 }

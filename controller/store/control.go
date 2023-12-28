@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"stupid-caldaia/controller/graph/model"
 	"time"
 
@@ -18,7 +17,6 @@ func ShouldHeat(programmedIntervals map[string]*model.ProgrammedInterval, refere
 		// print for debug
 		temperatureNotOk := referenceTemperature < programmedInterval.TargetTemp
 		// print for debug
-		fmt.Printf("%f < %f: %t\n", referenceTemperature, programmedInterval.TargetTemp, temperatureNotOk)
 		shouldHeat := ruleIsActive && temperatureNotOk
 		if shouldHeat {
 			return true
@@ -82,7 +80,14 @@ func RuleChangeController(ctx context.Context, boiler *model.Boiler, temperature
 			if err != nil {
 				panic(err)
 			}
-			if ShouldHeat(programmedIntervals, *averageTemperature) {
+
+			// If no average is present we set to max temp to avoid turning on the boiler
+			referenceTemperature := boilerInfo.MaxTemp
+			if averageTemperature != nil {
+				referenceTemperature = *averageTemperature
+			}
+
+			if ShouldHeat(programmedIntervals, referenceTemperature) {
 				boiler.Switch(ctx, model.StateOn)
 			} else {
 				boiler.Switch(ctx, model.StateOff)
