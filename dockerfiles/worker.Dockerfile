@@ -6,6 +6,8 @@ ENV CONFIG_PATH=/config.json
 
 RUN apk update && apk add i2c-tools
 
+RUN usermod -aG plugdev $USER
+
 EXPOSE 8080
 
 ENTRYPOINT ["/lettore"]
