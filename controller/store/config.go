@@ -8,18 +8,26 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+
 const (
-	CONFIG_PATH = "../config.json"
+	ConfigEnvVar = "CONFIG_PATH"
+	DefaultConfigPath = "../config.json"
 )
+
 
 type Config struct {
 	Sensors []model.SensorOptions
 	Redis   redis.Options
 }
 
+
 func LoadConfig() (Config, error) {
 	// Read config file and parse it
-	file, err := os.Open(CONFIG_PATH)
+	configPath := os.Getenv(ConfigEnvVar)
+	if configPath == "" {
+		configPath = DefaultConfigPath
+	}
+	file, err := os.Open(configPath)
 	if err != nil {
 		return Config{}, err
 	}

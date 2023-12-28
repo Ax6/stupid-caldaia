@@ -6,10 +6,10 @@ build-app:
 	docker build -t $(APP_IMAGE) -f dockerfiles/app.Dockerfile app
 
 build-controller:
-	docker build -t $(CONTROLLER_IMAGE) -f dockerfiles/controller.Dockerfile controller
+	docker build -t $(CONTROLLER_IMAGE) -f dockerfiles/controller.Dockerfile .
 
 build-worker:
-	docker build -t $(WORKER_IMAGE) -f dockerfiles/controller.Dockerfile lettore
+	docker build -t $(WORKER_IMAGE) -f dockerfiles/lettore.Dockerfile lettore
 
 install-redis:
 	curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
