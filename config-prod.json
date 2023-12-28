@@ -3,6 +3,10 @@
         {
             "name": "temperatura",
             "position": "centrale"
+        },
+        {
+            "name": "umidita",
+            "position": "centrale"
         }
     ],
     "redis": {

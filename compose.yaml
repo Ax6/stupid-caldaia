@@ -38,6 +38,8 @@ services:
     image: redis/redis-stack-server:latest
     networks:
       - stupid_network
+    environment:
+      - REDIS_ARGS=--save 1200 32
     volumes:
       - redis_data:/data
     ports:
