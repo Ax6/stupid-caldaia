@@ -61,19 +61,12 @@ func NewSensor(ctx context.Context, client *redis.Client, opt *SensorOptions) (*
 	return &sensor, nil
 }
 
-func (s *Sensor) Get(ctx context.Context, from *time.Time, to *time.Time) ([]*Measure, error) {
+// Get returns the measures of the sensor in the given time interval.
+// If from is nil, it will be set to 24 hours before to.
+// If to is nil, it will be set to the current time.
+func (s *Sensor) Get(ctx context.Context, from time.Time, to time.Time) ([]*Measure, error) {
 	// Get data from Redis
 	var fromTimestamp, toTimestamp int
-	if to == nil {
-		toTimestamp = int(time.Now().UnixMilli())
-	} else {
-		toTimestamp = int(to.UnixMilli())
-	}
-	if from == nil {
-		fromTimestamp = toTimestamp - 24*60*60*1000
-	} else {
-		fromTimestamp = int(from.UnixMilli())
-	}
 	data, err := s.Client.TSRange(ctx, s.compactedKey, fromTimestamp, toTimestamp).Result()
 	if err != nil {
 		return nil, err
@@ -120,4 +113,16 @@ func (s *Sensor) AddSample(ctx context.Context, sample *Measure) error {
 		return err
 	}
 	return err
+}
+
+func (s *Sensor) GetAverage(ctx context.Context, from time.Time, to time.Time) (float64, error) {
+	measureRange, err := s.Get(ctx, from, to)
+	if err != nil {
+		return 0, err
+	}
+	sum := 0.0
+	for _, measure := range measureRange {
+		sum += measure.Value
+	}
+	return sum / float64(len(measureRange)), nil
 }

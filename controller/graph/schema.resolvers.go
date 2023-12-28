@@ -60,19 +60,29 @@ func (r *queryResolver) Boiler(ctx context.Context) (*model.BoilerInfo, error) {
 
 // Sensor is the resolver for the sensor field.
 func (r *queryResolver) Sensor(ctx context.Context, name string, position string) (*model.Measure, error) {
-	result, err := r.Resolver.Sensors[name+":"+position].Get(ctx, nil, nil)
+	from := time.Now().Add(-10 * time.Minute)
+	to := time.Now()
+	result, err := r.Resolver.Sensors[name+":"+position].Get(ctx, from, to)
 	if err != nil {
 		return nil, err
 	}
 	if len(result) == 0 {
 		return nil, nil
 	}
-	return result[0], nil
+	return result[len(result)-1], nil
 }
 
 // SensorRange is the resolver for the sensorRange field.
 func (r *queryResolver) SensorRange(ctx context.Context, name string, position string, from *time.Time, to *time.Time) ([]*model.Measure, error) {
-	return r.Resolver.Sensors[name+":"+position].Get(ctx, from, to)
+	defaultFrom := time.Now().Add(-24 * time.Hour)
+	defaultTo := time.Now()
+	if from == nil {
+		from = &defaultFrom
+	}
+	if to == nil {
+		to = &defaultTo
+	}
+	return r.Resolver.Sensors[name+":"+position].Get(ctx, *from, *to)
 }
 
 // Boiler is the resolver for the boiler field.

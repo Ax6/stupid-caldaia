@@ -9,6 +9,7 @@ WORKER_IMAGE=stupid-caldaia-worker
 # make bundle-client
 # make bundle-server
 # make restart-target
+deploy: sync bundle-client bundle-server restart-target
 
 run-app-target:
 	cd app && PUBLIC_SERVER_HOST=$(TARGET_ADDRESS) PUBLIC_CLIENT_HOST=$(TARGET_ADDRESS) npm run dev && cd..
@@ -17,7 +18,7 @@ sync:
 	git push && ssh $(TARGET_MACHINE) 'cd stupid-caldaia && git pull'
 
 restart:
-	docker compose restart
+	docker compose stop && docker compose rm -f && docker compose up -d
 
 restart-target:
 	ssh $(TARGET_MACHINE) 'cd stupid-caldaia && make restart'

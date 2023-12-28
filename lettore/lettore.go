@@ -13,13 +13,16 @@ import (
 	"periph.io/x/host/v3"
 )
 
+const (
+	ControllerHost = "localhost"
+)
+
 var (
 	htu21Data   physic.Env
 	htu21Device *htu21.Dev
 )
 
 func main() {
-
 	ctx := context.Background()
 
 	config, err := store.LoadConfig()
@@ -27,10 +30,13 @@ func main() {
 		panic(err)
 	}
 
-	_, sensors, _ := config.CreateObjects(ctx)
+	_, sensors, boiler := config.CreateObjects(ctx)
 
 	for {
-		// Preparing to read sensor
+		// zzz
+		time.Sleep(1 * time.Second)
+
+		// Read sensors...
 		if _, err := host.Init(); err != nil {
 			log.Fatal(err)
 		}
@@ -46,22 +52,49 @@ func main() {
 			log.Fatalf("failed to initialize htu21: %v", err)
 		}
 
+		// Measure
 		if err := htu21Device.Sense(&htu21Data); err != nil {
 			log.Fatal(err)
 		}
 
-		temperature := model.Measure{
+		// Add to database
+		sensors["temperatura:centrale"].AddSample(ctx, &model.Measure{
 			Timestamp: time.Now(),
 			Value:     htu21Data.Temperature.Celsius(),
-		}
-		sensors["temperatura:centrale"].AddSample(ctx, &temperature)
+		})
 
-		humidity := model.Measure{
+		sensors["umidita:centrale"].AddSample(ctx, &model.Measure{
 			Timestamp: time.Now(),
 			Value:     float64(htu21Data.Humidity / physic.MilliRH * physic.PercentRH),
-		}
-		sensors["umidita:centrale"].AddSample(ctx, &humidity)
+		})
 
-		time.Sleep(1 * time.Second)
+		// And now use some logic
+
+		// Get all the programmed intervals
+		programmedIntervals, err := boiler.GetProgrammedIntervals(ctx)
+		if err != nil {
+			panic(err)
+		}
+
+		// Get the temperature of the last 20 minutes
+		centrale := sensors["temperatura:centrale"]
+		currentTemperature, err := centrale.GetAverage(ctx, time.Now().Add(-20*time.Minute), time.Now())
+
+		shouldHeat := false
+		for _, programmedInterval := range programmedIntervals {
+			// Check if the programmed interval is active
+			projectedStartTime := time.Now().Add(-programmedInterval.Duration)
+			ruleIsActive := projectedStartTime.Before(programmedInterval.Start)
+			temperatureNotOk := currentTemperature < programmedInterval.TargetTemp
+			shouldHeat = ruleIsActive && temperatureNotOk
+			if shouldHeat {
+				break
+			}
+		}
+		if shouldHeat {
+			boiler.Switch(ctx, model.StateOn)
+		} else {
+			boiler.Switch(ctx, model.StateOff)
+		}
 	}
 }
