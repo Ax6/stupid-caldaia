@@ -1,0 +1,21 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+type Query {
+  switch: Switch!
+}
+
+type Mutation {
+  setSwitch(state: State): State!
+}
+
+type Switch {
+  state: State!
+}
+
+enum State {
+  ON
+  OFF
+  UNKNOWN
+}
