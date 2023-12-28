@@ -9,7 +9,7 @@ build-controller:
 	docker build -t $(CONTROLLER_IMAGE) -f dockerfiles/controller.Dockerfile .
 
 build-worker:
-	docker build -t $(WORKER_IMAGE) -f dockerfiles/lettore.Dockerfile .
+	docker build -t $(WORKER_IMAGE) -f dockerfiles/worker.Dockerfile .
 
 install-redis:
 	curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
