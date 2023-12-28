@@ -3,14 +3,14 @@ version: '3.8'
 services:
   app:
     build:
-      context: ../app
-      dockerfile: app.Dockerfile
+      context: app
+      dockerfile: ../dockerfiles/app.Dockerfile
     ports:
       - "4173:4173"
 
   controller:
     build:
-      context: ../controller
-      dockerfile: controller.Dockerfile
+      context: controller
+      dockerfile: ../dockerfiles/controller.Dockerfile
     ports:
       - "8080:8080"
