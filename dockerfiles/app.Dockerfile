@@ -7,6 +7,8 @@ RUN npm install
 COPY . ./
 RUN npm run build
 
+ENV SERVER_HOST=controller
+
 EXPOSE 4173
 
 CMD ["npm", "run", "host"]
