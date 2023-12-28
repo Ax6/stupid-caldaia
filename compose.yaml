@@ -6,6 +6,8 @@ services:
       context: app
       dockerfile: ../dockerfiles/app.Dockerfile
     network_mode: host
+    ports:
+      - 4173:4173
     depends_on:
       - controller
 
@@ -14,6 +16,8 @@ services:
       context: .
       dockerfile: dockerfiles/controller.Dockerfile
     network_mode: host
+    ports:
+      - 8080:8080
     depends_on:
       - redis
 
