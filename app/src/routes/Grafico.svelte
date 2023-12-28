@@ -1,10 +1,11 @@
 <script lang="ts">
-	import type { SensorRangeData, BoilerData } from './+page.server';
+	import type { SensorRangeData, BoilerData, Measure } from './+page.server';
 	import * as d3 from 'd3';
 
 	export let data: SensorRangeData & BoilerData;
 
-	let hoverData: any = { show: false };
+	let hoverData: any;
+	let isTooltipHidden = true;
 	let width = 0;
 	let height = 350;
 
@@ -12,25 +13,39 @@
 	const innerHeight = height - margin.top - margin.bottom;
 	$: innerWidth = width - margin.left - margin.right;
 
-	$: xDomain = data.sensorRange.map((d) => new Date(d.timestamp));
-	$: yScale = d3.scaleLinear().domain([data.boiler.maxTemp + 5, data.boiler.minTemp - 5]).range([0, innerHeight]);
-	$: xScale = d3
-		.scaleLinear()
-		.domain([d3.min(xDomain) || 0, d3.max(xDomain) || 0])
-		.range([0, innerWidth]);
+	$: xValues = data.sensorRange.map((d) => new Date(d.timestamp));
+	$: xDomain = [d3.min(xValues) || 0, d3.max(xValues) || 0];
+	$: xScale = d3.scaleLinear().domain(xDomain).range([0, innerWidth]);
+
+	$: yValues = data.sensorRange.map((d) => d.value);
+	$: yDomain = [data.boiler.maxTemp, data.boiler.minTemp];
+	$: yScale = d3.scaleLinear().domain(yDomain).range([0, innerHeight]);
 
 	function hideTooltip() {
-		hoverData = { show: false };
+		isTooltipHidden = true;
 	}
 
-	function showTooltip(d: any) {
+	function showTooltip(e: null | MouseEvent = null, d: null | Measure = null) {
+		// Find closest point to e
+		if (!d) {
+			const mouseRelToSvg = d3.pointer(e);
+			const mouseRelToPlot = [mouseRelToSvg[0] - margin.left, mouseRelToSvg[1] - margin.top];
+			const x0 = new Date(xScale.invert(mouseRelToPlot[0]));
+			const i = d3.bisect(xValues, x0, 1);
+			const d0 = data.sensorRange[i - 1];
+			const d1 = data.sensorRange[i];
+			if (!d0 || !d1) return;
+			d = x0 - new Date(d0.timestamp) > new Date(d1.timestamp) - x0 ? d1 : d0;
+			if (Math.abs(yScale(d.value) - mouseRelToPlot[1]) > 20) return;
+			if (Math.abs(xScale(new Date(d.timestamp)) - mouseRelToPlot[0]) > 20) return;
+		}
 		hoverData = {
 			value: d.value,
 			time: new Date(d.timestamp),
 			x: xScale(new Date(d.timestamp)),
-			y: yScale(d.value),
-			show: true
+			y: yScale(d.value)
 		};
+		isTooltipHidden = false;
 	}
 </script>
 
@@ -42,7 +57,14 @@
 	{#if width === 0}
 		<p class="text-2xl m-2 font-semibold">Caricamento...</p>
 	{:else}
-		<svg {width} {height}>
+		<svg
+			{width}
+			{height}
+			role="figure"
+			on:mousemove={(e) => showTooltip(e)}
+			on:mouseout={hideTooltip}
+			on:blur={hideTooltip}
+		>
 			<g transform={`translate(${margin.left},${margin.top})`}>
 				{#each xScale.ticks(width / 100) as tickValue}
 					<g transform={`translate(${xScale(tickValue)},0)`}>
@@ -62,29 +84,19 @@
 				{/each}
 				<path
 					class="stroke-slate-800 fill-none stroke-width-2"
-					d={d3.line()(
-						data.sensorRange.map((d) => [xScale(new Date(d.timestamp)), yScale(d.value)])
-					)}
+					d={d3.line()(xValues.map((d, i) => [xScale(d), yScale(yValues[i])]))}
 				>
 				</path>
 				<g>
 					{#each data.sensorRange as d}
 						<circle
-							cx={xScale(new Date(d.timestamp))}
-							cy={yScale(d.value)}
-							r="3"
-							class="fill-slate-700"
-						/>
-						<circle
 							role="button"
 							tabindex="0"
 							cx={xScale(new Date(d.timestamp))}
 							cy={yScale(d.value)}
-							r="20"
-							class="fill-transparent"
-							on:mouseenter={() => showTooltip(d)}
-							on:focus={() => showTooltip(d)}
-							on:mouseout={hideTooltip}
+							r="3"
+							class="fill-slate-700"
+							on:focus={() => showTooltip(undefined, d)}
 							on:blur={hideTooltip}
 						/>
 					{/each}
@@ -97,7 +109,7 @@
 				>
 					Temperatura (°C)
 				</text>
-				{#if hoverData.show}
+				{#if !isTooltipHidden}
 					<g>
 						<line
 							x1={hoverData.x}
