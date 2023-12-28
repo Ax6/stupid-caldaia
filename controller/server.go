@@ -13,6 +13,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/rs/cors"
+	"github.com/stianeikeland/go-rpio/v4"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
@@ -27,6 +28,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	err = rpio.Open()
+	if err != nil {
+		panic(err)
+	}
+	pin := rpio.Pin(config.Boiler.SwitchPin)
+	defer rpio.Close()
+	defer pin.Low()
+	defer pin.Output()
 
 	client, sensors, boiler := config.CreateObjects(context.Background())
 

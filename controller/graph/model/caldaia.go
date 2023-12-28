@@ -30,11 +30,6 @@ func NewBoiler(ctx context.Context, client *redis.Client, config BoilerConfig) (
 // Function to switch the relay on or off
 // Accepts only two values: "on" or "off"
 func (c *Boiler) Switch(ctx context.Context, targetState State) (*State, error) {
-	err := rpio.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer rpio.Close()
 	pin := rpio.Pin(c.config.SwitchPin)
 	pin.Output()
 	info, err := c.GetInfo(ctx)
