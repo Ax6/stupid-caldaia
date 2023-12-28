@@ -3,13 +3,14 @@
 # https://gqlgen.com/getting-started/
 
 type Subscription {
-  temperature(position: String!): Measure!
   boiler: Boiler!
+  temperature(position: String!): Measure!
 }
 
 type Query {
   boiler: Boiler!
-  temperature(from: Time, to: Time, position: String!): [Measure!]!
+  temperature(position: String!): Measure!
+  temperatureRange(from: Time, to: Time, position: String!): [Measure!]!
 }
 
 type Measure {

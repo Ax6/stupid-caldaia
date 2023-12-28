@@ -69,18 +69,28 @@ func (r *queryResolver) Boiler(ctx context.Context) (*model.Boiler, error) {
 }
 
 // Temperature is the resolver for the temperature field.
-func (r *queryResolver) Temperature(ctx context.Context, from *time.Time, to *time.Time, position string) ([]*model.Measure, error) {
-	return r.Sensors["temperatura:"+position].Get(ctx, from, to)
+func (r *queryResolver) Temperature(ctx context.Context, position string) (*model.Measure, error) {
+	result, err := r.Sensors["temperatura:"+position].Get(ctx, nil, nil)
+	return result[0], err
 }
 
-// Temperature is the resolver for the temperature field.
-func (r *subscriptionResolver) Temperature(ctx context.Context, position string) (<-chan *model.Measure, error) {
-	return r.Sensors["temperatura:"+position].Latest()
+// TemperatureRange is the resolver for the temperatureRange field.
+func (r *queryResolver) TemperatureRange(ctx context.Context, from *time.Time, to *time.Time, position string) ([]*model.Measure, error) {
+	return r.Sensors["temperatura:"+position].Get(ctx, from, to)
 }
 
 // Boiler is the resolver for the boiler field.
 func (r *subscriptionResolver) Boiler(ctx context.Context) (<-chan *model.Boiler, error) {
-	panic(fmt.Errorf("not implemented: Boiler - boiler"))
+	boiler, err := model.GetCaldaia(ctx, r.Client)
+	if err != nil {
+		return nil, err
+	}
+	return boiler.Listen(ctx)
+}
+
+// Temperature is the resolver for the temperature field.
+func (r *subscriptionResolver) Temperature(ctx context.Context, position string) (<-chan *model.Measure, error) {
+	return r.Sensors["temperatura:"+position].Listen(ctx)
 }
 
 // Mutation returns MutationResolver implementation.

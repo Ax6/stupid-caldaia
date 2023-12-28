@@ -26,13 +26,12 @@ type Sensor struct {
 	Client       *redis.Client
 	Id           string
 	compactedKey string
-	sub          *redis.PubSub
 }
 
 func NewSensor(ctx context.Context, client *redis.Client, opt *SensorOptions) (*Sensor, error) {
 	key := opt.Name + ":" + opt.Position
 	compactedKey := opt.Name + "_compacted" + ":" + opt.Position
-	sensor := Sensor{opt.Name, opt.Position, client, key, compactedKey, nil}
+	sensor := Sensor{opt.Name, opt.Position, client, key, compactedKey}
 
 	// Check if sensor already exists
 	exists, _ := sensor.Client.Exists(ctx, key).Result()
@@ -60,9 +59,6 @@ func NewSensor(ctx context.Context, client *redis.Client, opt *SensorOptions) (*
 			return &sensor, err
 		}
 	}
-
-	// Subscribe to sensor channel
-	sensor.sub = sensor.Client.Subscribe(ctx, key)
 	return &sensor, nil
 }
 
@@ -92,10 +88,11 @@ func (s *Sensor) Get(ctx context.Context, from *time.Time, to *time.Time) ([]*Me
 	return measures, nil
 }
 
-func (s *Sensor) Latest() (<-chan *Measure, error) {
+func (s *Sensor) Listen(ctx context.Context) (<-chan *Measure, error) {
 	temperatureUpdates := make(chan *Measure)
 	go func() {
-		for msg := range s.sub.Channel() {
+		sub := s.Client.Subscribe(ctx, s.Id)
+		for msg := range sub.Channel() {
 			measure := Measure{}
 			err := json.Unmarshal([]byte(msg.Payload), &measure)
 			if err != nil {
@@ -128,6 +125,6 @@ func (s *Sensor) Sample(ctx context.Context) (*Measure, error) {
 	if err != nil {
 		return &sample, err
 	}
-	s.Client.Publish(ctx, s.Id, message)
-	return &sample, nil
+	err = s.Client.Publish(ctx, s.Id, message).Err()
+	return &sample, err
 }

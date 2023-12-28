@@ -1,32 +1,42 @@
 <script lang="ts">
-	import { gql, madonna } from '$lib/porca-madonna-ql';
-	export let data: { switch: { state: State } };
+	import { gql, porca, madonne } from '$lib/porca-madonna-ql';
+	import type { PageData, BoilerData, Boiler } from './+page.server';
+	export let data: PageData;
 
-	type State = 'ON' | 'OFF';
-	type SetSwitch = { setSwitch: State };
+	let subscription = madonne<BoilerData>(gql`
+		subscription {
+			boiler {
+				state
+			}
+		}
+	`);
+	subscription.set({ boiler: data.boiler });
 
 	async function handleClick() {
-		const result = await madonna<SetSwitch>(
+		const result = await porca<Boiler>(
 			gql`
-				mutation setSwitch($state: State!) {
-					setSwitch(state: $state)
+				mutation setState($state: State!) {
+					updateBoiler(config: { state: $state }) {
+						state
+					}
 				}
 			`,
 			{
-				state: data.switch.state === 'ON' ? 'OFF' : 'ON'
+				state: $subscription.boiler.state === 'ON' ? 'OFF' : 'ON'
 			}
 		);
-		data.switch.state = result.setSwitch;
+		subscription.set({ boiler: result });
 	}
 </script>
 
 <button
-	class="m-2 p-2 grid place-items-center rounded-xl {data.switch.state.toLowerCase() || 'unknown'}"
+	class="m-2 p-2 grid place-items-center rounded-xl {$subscription.boiler.state.toLowerCase() ||
+		'unknown'}"
 	on:click={handleClick}
 >
 	<p class="text-xl">Caldaia</p>
 	<p class="text-6xl">
-		{data.switch.state}
+		{$subscription.boiler.state}
 	</p>
 </button>
 

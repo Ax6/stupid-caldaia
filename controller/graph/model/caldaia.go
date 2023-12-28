@@ -82,10 +82,34 @@ func (c *BoilerStore) SetTargetTemp(ctx context.Context, temp float64) (float64,
 	return *c.TargetTemp, err
 }
 
+func (c *BoilerStore) Listen(ctx context.Context) (<-chan *Boiler, error) {
+	boilerUpdates := make(chan *Boiler)
+	go func() {
+		sub := c.client.Subscribe(ctx, "caldaia")
+		for msg := range sub.Channel() {
+			boiler := Boiler{}
+			err := json.Unmarshal([]byte(msg.Payload), &boiler)
+			if err != nil {
+				fmt.Println(err)
+				break
+			} else {
+				boilerUpdates <- &boiler
+			}
+		}
+		close(boilerUpdates)
+	}()
+	return boilerUpdates, nil
+}
+
 func (c *BoilerStore) save(ctx context.Context) error {
 	data, err := json.Marshal(c.Boiler)
 	if err != nil {
 		return err
 	}
-	return c.client.Set(ctx, "caldaia", data, 0).Err()
+	err = c.client.Set(ctx, "caldaia", data, 0).Err()
+	if err != nil {
+		return err
+	}
+	err = c.client.Publish(ctx, "caldaia", data).Err()
+	return err
 }
