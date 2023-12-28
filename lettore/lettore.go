@@ -35,7 +35,7 @@ func main() {
 
 	for {
 		for _, sensor := range sensors {
-			measure, err := sensor.Sample()
+			measure, err := sensor.Sample(ctx)
 			if err != nil {
 				panic(err)
 			}

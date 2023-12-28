@@ -74,10 +74,11 @@ func (s *Sensor) Add(ctx context.Context, measure *Measure) error {
 	return nil
 }
 
-func (s *Sensor) Sample() (*Measure, error) {
+func (s *Sensor) Sample(ctx context.Context) (*Measure, error) {
 	// Create a random number for testing
 	value := rand.Float64() * 100
 	time := float64(time.Now().UnixMilli())
 	sample := Measure{Timestamp: time, Value: value}
+	s.Client.Publish(ctx, s.key, value)
 	return &sample, nil
 }

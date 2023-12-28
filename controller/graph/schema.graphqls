@@ -2,6 +2,10 @@
 #
 # https://gqlgen.com/getting-started/
 
+type Subscription {
+  onTemperatureChange(position: String!): Float!
+}
+
 type Query {
   switch: Switch!
 }
