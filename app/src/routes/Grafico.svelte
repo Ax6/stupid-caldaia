@@ -6,7 +6,7 @@
 
 	let hoverData: any = { show: false };
 	let width = 0;
-	let height = 400;
+	let height = 350;
 
 	const margin = { top: 20, right: 20, bottom: 20, left: 60 };
 	const innerHeight = height - margin.top - margin.bottom;

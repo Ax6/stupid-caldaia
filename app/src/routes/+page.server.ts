@@ -7,7 +7,7 @@ export type BoilerData = {
 };
 
 export type TemperatureData = {
-	temperature: Measure;
+	temperature?: Measure;
 };
 
 export type TemperatureRangeData = {
@@ -41,10 +41,10 @@ export async function load(): Promise<PageData> {
 				timestamp
 				value
 			}
-            temperatureRange(position: "centrale") {
-                timestamp
-                value
-            }
+			temperatureRange(position: "centrale") {
+				timestamp
+				value
+			}
 		}
 	`);
 }

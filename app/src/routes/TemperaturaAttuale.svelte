@@ -14,9 +14,13 @@
 	subscription.set({ temperature: data.temperature });
 </script>
 
-<div class="bg-gray-400 m-2 p-2 grid place-items-center rounded-xl">
+<div class="pb-6 pt-4 bg-gray-400 grid place-items-center rounded-xl">
 	<p class="text-xl">Temperatura attuale</p>
 	<p class="text-6xl">
-		{$subscription.temperature.value.toFixed(1)} °C
+		{#if $subscription.temperature?.value}
+			{$subscription.temperature.value.toFixed(1)} °C
+		{:else}
+			Boh?
+		{/if}
 	</p>
 </div>

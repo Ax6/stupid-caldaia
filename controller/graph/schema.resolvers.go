@@ -71,7 +71,13 @@ func (r *queryResolver) Boiler(ctx context.Context) (*model.Boiler, error) {
 // Temperature is the resolver for the temperature field.
 func (r *queryResolver) Temperature(ctx context.Context, position string) (*model.Measure, error) {
 	result, err := r.Sensors["temperatura:"+position].Get(ctx, nil, nil)
-	return result[0], err
+	if err != nil {
+		return nil, err
+	}
+	if len(result) == 0 {
+		return nil, nil
+	}
+	return result[0], nil
 }
 
 // TemperatureRange is the resolver for the temperatureRange field.

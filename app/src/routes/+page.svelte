@@ -3,12 +3,20 @@
 	import TemperaturaAttuale from './TemperaturaAttuale.svelte';
 	import Interruttore from './Interruttore.svelte';
 	import Grafico from './Grafico.svelte';
+	import Regole from './Regole.svelte';
+	import Target from './Target.svelte';
 
 	export let data: PageData;
 </script>
 
-<body class="w-full flex flex-col items-center">
-	<TemperaturaAttuale {data} />
-	<Interruttore {data} />
+<body class="container flex flex-col items-center">
+	<div class="container p-2 pt-4">
+		<Target {data} />
+	</div>
+	<div class="container p-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
+		<TemperaturaAttuale {data} />
+		<Interruttore {data} />
+	</div>
+	<Regole {data} />
 	<Grafico {data} />
 </body>

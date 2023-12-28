@@ -30,17 +30,23 @@
 </script>
 
 <button
-	class="m-2 p-2 grid place-items-center rounded-xl {$subscription.boiler.state.toLowerCase() ||
+	class="pb-6 pt-4 grid place-items-center rounded-xl {$subscription.boiler.state.toLowerCase() ||
 		'unknown'}"
 	on:click={handleClick}
 >
 	<p class="text-xl">Caldaia</p>
 	<p class="text-6xl">
-		{$subscription.boiler.state}
+		{#if $subscription.boiler.state === 'ON'}
+			Accesa
+		{:else if $subscription.boiler.state === 'OFF'}
+			Spenta
+		{:else}
+			Boh?
+		{/if}
 	</p>
 </button>
 
-<style>
+<style lang="postcss">
 	.on {
 		@apply bg-green-300;
 	}
