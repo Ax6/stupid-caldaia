@@ -10,9 +10,8 @@ RUN cp -a /tmp/node_modules /app/
 
 WORKDIR /app
 COPY . ./
-RUN npm run build
-
 ENV PUBLIC_SERVER_HOST=controller
+RUN npm run build
 
 EXPOSE 4173
 
