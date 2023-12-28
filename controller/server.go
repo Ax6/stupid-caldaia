@@ -28,7 +28,7 @@ func main() {
 		panic(err)
 	}
 
-	client, sensors := config.CreateObjects(context.Background())
+	client, sensors, boiler := config.CreateObjects(context.Background())
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
@@ -40,7 +40,7 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{Client: client, Sensors: sensors}}))
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{Client: client, Sensors: sensors, Boiler: boiler}}))
 	srv.AddTransport(transport.SSE{})
 	srv.AddTransport(transport.POST{})
 	srv.AddTransport(transport.Websocket{

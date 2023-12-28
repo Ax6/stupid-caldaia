@@ -1,16 +1,22 @@
 {
-    "sensors": [
-        {
-            "name": "temperatura",
-            "position": "centrale"
-        },
-        {
-            "name": "umidita",
-            "position": "centrale"
-        }
-    ],
-    "redis": {
-        "addr": "localhost:6379",
-        "password": ""
+  "sensors": [
+    {
+      "name": "temperatura",
+      "position": "centrale"
+    },
+    {
+      "name": "umidita",
+      "position": "centrale"
     }
+  ],
+  "boiler": {
+    "name": "caldaia",
+    "switchPin": 21,
+    "defaultMinTemperature": 0,
+    "defaultMaxTemperature": 30
+  },
+  "redis": {
+    "addr": "localhost:6379",
+    "password": ""
+  }
 }

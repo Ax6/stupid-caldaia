@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { TemperatureRangeData } from './+page.server';
+	import type { SensorRangeData, BoilerData } from './+page.server';
 	import * as d3 from 'd3';
 
-	export let data: TemperatureRangeData;
+	export let data: SensorRangeData & BoilerData;
 
 	let hoverData: any = { show: false };
 	let width = 0;
@@ -12,8 +12,8 @@
 	const innerHeight = height - margin.top - margin.bottom;
 	$: innerWidth = width - margin.left - margin.right;
 
-	$: xDomain = data.temperatureRange.map((d) => new Date(d.timestamp));
-	$: yScale = d3.scaleLinear().domain([100, 0]).range([0, innerHeight]);
+	$: xDomain = data.sensorRange.map((d) => new Date(d.timestamp));
+	$: yScale = d3.scaleLinear().domain([data.boiler.maxTemp + 5, data.boiler.minTemp - 5]).range([0, innerHeight]);
 	$: xScale = d3
 		.scaleLinear()
 		.domain([d3.min(xDomain) || 0, d3.max(xDomain) || 0])
@@ -63,19 +63,25 @@
 				<path
 					class="stroke-slate-800 fill-none stroke-width-2"
 					d={d3.line()(
-						data.temperatureRange.map((d) => [xScale(new Date(d.timestamp)), yScale(d.value)])
+						data.sensorRange.map((d) => [xScale(new Date(d.timestamp)), yScale(d.value)])
 					)}
 				>
 				</path>
 				<g>
-					{#each data.temperatureRange as d}
+					{#each data.sensorRange as d}
+						<circle
+							cx={xScale(new Date(d.timestamp))}
+							cy={yScale(d.value)}
+							r="3"
+							class="fill-slate-700"
+						/>
 						<circle
 							role="button"
 							tabindex="0"
 							cx={xScale(new Date(d.timestamp))}
 							cy={yScale(d.value)}
-							r="3"
-							class="fill-slate-700"
+							r="20"
+							class="fill-transparent"
 							on:mouseenter={() => showTooltip(d)}
 							on:focus={() => showTooltip(d)}
 							on:mouseout={hideTooltip}

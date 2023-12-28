@@ -3,12 +3,12 @@
 # https://gqlgen.com/getting-started/
 
 type Subscription {
-  boiler: Boiler!
+  boiler: BoilerInfo!
   sensor(name: String!, position: String!): Measure!
 }
 
 type Query {
-  boiler: Boiler!
+  boiler: BoilerInfo!
   sensor(name: String!, position: String!): Measure
   sensorRange(
     name: String!
@@ -23,7 +23,7 @@ type Measure {
   timestamp: Time!
 }
 
-type Boiler {
+type BoilerInfo {
   state: State!
   minTemp: Float!
   maxTemp: Float!
@@ -52,9 +52,9 @@ scalar Duration
 # Mutations
 # ---------------------------------------------
 type Mutation {
-  updateBoiler(config: BoilerInput!): Boiler!
-  addProgrammedInterval(interval: ProgrammedIntervalInput!): Boiler!
-  removeProgrammedInterval(id: ID!): Boiler!
+  updateBoiler(config: BoilerInput!): BoilerInfo!
+  addProgrammedInterval(interval: ProgrammedIntervalInput!): BoilerInfo!
+  removeProgrammedInterval(id: ID!): BoilerInfo!
 }
 
 input BoilerInput {

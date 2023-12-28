@@ -27,7 +27,7 @@ func main() {
 		panic(err)
 	}
 
-	_, sensors := config.CreateObjects(ctx)
+	_, sensors, _ := config.CreateObjects(ctx)
 
 	for {
 		// Preparing to read sensor

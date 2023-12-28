@@ -17,6 +17,7 @@ const (
 type Config struct {
 	Sensors []model.SensorOptions
 	Redis   redis.Options
+	Boiler  model.BoilerConfig
 }
 
 func LoadConfig() (Config, error) {
@@ -26,23 +27,24 @@ func LoadConfig() (Config, error) {
 		configPath = DefaultConfigPath
 	}
 	file, err := os.Open(configPath)
-	if err != nil {
-		return Config{}, err
-	}
 	defer file.Close()
-
-	jsonParser := json.NewDecoder(file)
-	config := Config{}
-	err = jsonParser.Decode(&config)
 	if err != nil {
-		return Config{}, err
+		panic(err)
 	}
 
+	config := Config{}
+	err = json.NewDecoder(file).Decode(&config)
+	if err != nil {
+		panic(err)
+	}
 	return config, nil
 }
 
-func (c *Config) CreateObjects(ctx context.Context) (*redis.Client, map[string]*model.Sensor) {
+func (c *Config) CreateObjects(ctx context.Context) (*redis.Client, map[string]*model.Sensor, *model.Boiler) {
+	// DB client
 	client := redis.NewClient(&c.Redis)
+
+	// Sensors
 	sensors := make(map[string]*model.Sensor)
 	for _, sensorOptions := range c.Sensors {
 		sensor, err := model.NewSensor(ctx, client, &sensorOptions)
@@ -51,5 +53,11 @@ func (c *Config) CreateObjects(ctx context.Context) (*redis.Client, map[string]*
 		}
 		sensors[sensor.Id] = sensor
 	}
-	return client, sensors
+
+	// Boiler
+	boiler, err := model.NewBoiler(ctx, client, c.Boiler)
+	if err != nil {
+		panic(err)
+	}
+	return client, sensors, boiler
 }

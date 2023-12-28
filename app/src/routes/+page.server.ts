@@ -1,17 +1,17 @@
 import { gql, madonna } from '$lib/porca-madonna-ql';
 
-export type PageData = BoilerData & TemperatureData & TemperatureRangeData;
+export type PageData = BoilerData & SensorData & SensorRangeData;
 
 export type BoilerData = {
 	boiler: Boiler;
 };
 
-export type TemperatureData = {
-	temperature?: Measure;
+export type SensorData = {
+	sensor?: Measure;
 };
 
-export type TemperatureRangeData = {
-	temperatureRange: Measure[];
+export type SensorRangeData = {
+	sensorRange: Measure[];
 };
 
 export type Boiler = {

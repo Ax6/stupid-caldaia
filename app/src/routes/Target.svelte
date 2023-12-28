@@ -39,7 +39,7 @@
 	}
 </script>
 
-<div class="container min-h-32 bg-gray-200 grid place-items-center rounded-xl text-4xl">
+<div class="w-full min-h-32 bg-gray-200 grid place-items-center rounded-xl text-4xl">
 	{#if data.boiler.targetTemp}
 		<p>Mantieni {data.boiler.targetTemp}°C</p>
 		<button>Annulla</button>

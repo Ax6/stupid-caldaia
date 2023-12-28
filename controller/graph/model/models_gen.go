@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type Boiler struct {
+type BoilerInfo struct {
 	State               State                 `json:"state"`
 	MinTemp             float64               `json:"minTemp"`
 	MaxTemp             float64               `json:"maxTemp"`

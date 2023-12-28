@@ -4,6 +4,12 @@ TARGET_MACHINE=pi@$(TARGET_ADDRESS)
 CONTROLLER_IMAGE=stupid-caldaia-controller
 WORKER_IMAGE=stupid-caldaia-worker
 
+# Typical deployment process
+# make sync
+# make bundle-client
+# make bundle-server
+# make restart-target
+
 run-app-target:
 	cd app && PUBLIC_SERVER_HOST=$(TARGET_ADDRESS) PUBLIC_CLIENT_HOST=$(TARGET_ADDRESS) npm run dev && cd..
 

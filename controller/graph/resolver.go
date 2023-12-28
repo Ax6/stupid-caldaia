@@ -11,6 +11,7 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
+	Boiler  *model.Boiler
 	Client  *redis.Client
 	Sensors map[string]*model.Sensor
 }

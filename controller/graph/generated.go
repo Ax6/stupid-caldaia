@@ -50,7 +50,7 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
-	Boiler struct {
+	BoilerInfo struct {
 		MaxTemp             func(childComplexity int) int
 		MinTemp             func(childComplexity int) int
 		ProgrammedIntervals func(childComplexity int) int
@@ -89,17 +89,17 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	UpdateBoiler(ctx context.Context, config model.BoilerInput) (*model.Boiler, error)
-	AddProgrammedInterval(ctx context.Context, interval model.ProgrammedIntervalInput) (*model.Boiler, error)
-	RemoveProgrammedInterval(ctx context.Context, id string) (*model.Boiler, error)
+	UpdateBoiler(ctx context.Context, config model.BoilerInput) (*model.BoilerInfo, error)
+	AddProgrammedInterval(ctx context.Context, interval model.ProgrammedIntervalInput) (*model.BoilerInfo, error)
+	RemoveProgrammedInterval(ctx context.Context, id string) (*model.BoilerInfo, error)
 }
 type QueryResolver interface {
-	Boiler(ctx context.Context) (*model.Boiler, error)
+	Boiler(ctx context.Context) (*model.BoilerInfo, error)
 	Sensor(ctx context.Context, name string, position string) (*model.Measure, error)
 	SensorRange(ctx context.Context, name string, position string, from *time.Time, to *time.Time) ([]*model.Measure, error)
 }
 type SubscriptionResolver interface {
-	Boiler(ctx context.Context) (<-chan *model.Boiler, error)
+	Boiler(ctx context.Context) (<-chan *model.BoilerInfo, error)
 	Sensor(ctx context.Context, name string, position string) (<-chan *model.Measure, error)
 }
 
@@ -122,40 +122,40 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
-	case "Boiler.maxTemp":
-		if e.complexity.Boiler.MaxTemp == nil {
+	case "BoilerInfo.maxTemp":
+		if e.complexity.BoilerInfo.MaxTemp == nil {
 			break
 		}
 
-		return e.complexity.Boiler.MaxTemp(childComplexity), true
+		return e.complexity.BoilerInfo.MaxTemp(childComplexity), true
 
-	case "Boiler.minTemp":
-		if e.complexity.Boiler.MinTemp == nil {
+	case "BoilerInfo.minTemp":
+		if e.complexity.BoilerInfo.MinTemp == nil {
 			break
 		}
 
-		return e.complexity.Boiler.MinTemp(childComplexity), true
+		return e.complexity.BoilerInfo.MinTemp(childComplexity), true
 
-	case "Boiler.programmedIntervals":
-		if e.complexity.Boiler.ProgrammedIntervals == nil {
+	case "BoilerInfo.programmedIntervals":
+		if e.complexity.BoilerInfo.ProgrammedIntervals == nil {
 			break
 		}
 
-		return e.complexity.Boiler.ProgrammedIntervals(childComplexity), true
+		return e.complexity.BoilerInfo.ProgrammedIntervals(childComplexity), true
 
-	case "Boiler.state":
-		if e.complexity.Boiler.State == nil {
+	case "BoilerInfo.state":
+		if e.complexity.BoilerInfo.State == nil {
 			break
 		}
 
-		return e.complexity.Boiler.State(childComplexity), true
+		return e.complexity.BoilerInfo.State(childComplexity), true
 
-	case "Boiler.targetTemp":
-		if e.complexity.Boiler.TargetTemp == nil {
+	case "BoilerInfo.targetTemp":
+		if e.complexity.BoilerInfo.TargetTemp == nil {
 			break
 		}
 
-		return e.complexity.Boiler.TargetTemp(childComplexity), true
+		return e.complexity.BoilerInfo.TargetTemp(childComplexity), true
 
 	case "Measure.timestamp":
 		if e.complexity.Measure.Timestamp == nil {
@@ -616,8 +616,8 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _Boiler_state(ctx context.Context, field graphql.CollectedField, obj *model.Boiler) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Boiler_state(ctx, field)
+func (ec *executionContext) _BoilerInfo_state(ctx context.Context, field graphql.CollectedField, obj *model.BoilerInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BoilerInfo_state(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -647,9 +647,9 @@ func (ec *executionContext) _Boiler_state(ctx context.Context, field graphql.Col
 	return ec.marshalNState2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Boiler_state(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_BoilerInfo_state(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Boiler",
+		Object:     "BoilerInfo",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -660,8 +660,8 @@ func (ec *executionContext) fieldContext_Boiler_state(ctx context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Boiler_minTemp(ctx context.Context, field graphql.CollectedField, obj *model.Boiler) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Boiler_minTemp(ctx, field)
+func (ec *executionContext) _BoilerInfo_minTemp(ctx context.Context, field graphql.CollectedField, obj *model.BoilerInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BoilerInfo_minTemp(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -691,9 +691,9 @@ func (ec *executionContext) _Boiler_minTemp(ctx context.Context, field graphql.C
 	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Boiler_minTemp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_BoilerInfo_minTemp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Boiler",
+		Object:     "BoilerInfo",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -704,8 +704,8 @@ func (ec *executionContext) fieldContext_Boiler_minTemp(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Boiler_maxTemp(ctx context.Context, field graphql.CollectedField, obj *model.Boiler) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Boiler_maxTemp(ctx, field)
+func (ec *executionContext) _BoilerInfo_maxTemp(ctx context.Context, field graphql.CollectedField, obj *model.BoilerInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -735,9 +735,9 @@ func (ec *executionContext) _Boiler_maxTemp(ctx context.Context, field graphql.C
 	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Boiler_maxTemp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_BoilerInfo_maxTemp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Boiler",
+		Object:     "BoilerInfo",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -748,8 +748,8 @@ func (ec *executionContext) fieldContext_Boiler_maxTemp(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Boiler_targetTemp(ctx context.Context, field graphql.CollectedField, obj *model.Boiler) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Boiler_targetTemp(ctx, field)
+func (ec *executionContext) _BoilerInfo_targetTemp(ctx context.Context, field graphql.CollectedField, obj *model.BoilerInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BoilerInfo_targetTemp(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -776,9 +776,9 @@ func (ec *executionContext) _Boiler_targetTemp(ctx context.Context, field graphq
 	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Boiler_targetTemp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_BoilerInfo_targetTemp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Boiler",
+		Object:     "BoilerInfo",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -789,8 +789,8 @@ func (ec *executionContext) fieldContext_Boiler_targetTemp(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Boiler_programmedIntervals(ctx context.Context, field graphql.CollectedField, obj *model.Boiler) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Boiler_programmedIntervals(ctx, field)
+func (ec *executionContext) _BoilerInfo_programmedIntervals(ctx context.Context, field graphql.CollectedField, obj *model.BoilerInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -820,9 +820,9 @@ func (ec *executionContext) _Boiler_programmedIntervals(ctx context.Context, fie
 	return ec.marshalNProgrammedInterval2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Boiler_programmedIntervals(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_BoilerInfo_programmedIntervals(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Boiler",
+		Object:     "BoilerInfo",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -957,9 +957,9 @@ func (ec *executionContext) _Mutation_updateBoiler(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Boiler)
+	res := resTmp.(*model.BoilerInfo)
 	fc.Result = res
-	return ec.marshalNBoiler2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx, field.Selections, res)
+	return ec.marshalNBoilerInfo2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_updateBoiler(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -971,17 +971,17 @@ func (ec *executionContext) fieldContext_Mutation_updateBoiler(ctx context.Conte
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "state":
-				return ec.fieldContext_Boiler_state(ctx, field)
+				return ec.fieldContext_BoilerInfo_state(ctx, field)
 			case "minTemp":
-				return ec.fieldContext_Boiler_minTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_minTemp(ctx, field)
 			case "maxTemp":
-				return ec.fieldContext_Boiler_maxTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
 			case "targetTemp":
-				return ec.fieldContext_Boiler_targetTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_targetTemp(ctx, field)
 			case "programmedIntervals":
-				return ec.fieldContext_Boiler_programmedIntervals(ctx, field)
+				return ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Boiler", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type BoilerInfo", field.Name)
 		},
 	}
 	defer func() {
@@ -1024,9 +1024,9 @@ func (ec *executionContext) _Mutation_addProgrammedInterval(ctx context.Context,
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Boiler)
+	res := resTmp.(*model.BoilerInfo)
 	fc.Result = res
-	return ec.marshalNBoiler2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx, field.Selections, res)
+	return ec.marshalNBoilerInfo2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_addProgrammedInterval(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1038,17 +1038,17 @@ func (ec *executionContext) fieldContext_Mutation_addProgrammedInterval(ctx cont
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "state":
-				return ec.fieldContext_Boiler_state(ctx, field)
+				return ec.fieldContext_BoilerInfo_state(ctx, field)
 			case "minTemp":
-				return ec.fieldContext_Boiler_minTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_minTemp(ctx, field)
 			case "maxTemp":
-				return ec.fieldContext_Boiler_maxTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
 			case "targetTemp":
-				return ec.fieldContext_Boiler_targetTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_targetTemp(ctx, field)
 			case "programmedIntervals":
-				return ec.fieldContext_Boiler_programmedIntervals(ctx, field)
+				return ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Boiler", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type BoilerInfo", field.Name)
 		},
 	}
 	defer func() {
@@ -1091,9 +1091,9 @@ func (ec *executionContext) _Mutation_removeProgrammedInterval(ctx context.Conte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Boiler)
+	res := resTmp.(*model.BoilerInfo)
 	fc.Result = res
-	return ec.marshalNBoiler2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx, field.Selections, res)
+	return ec.marshalNBoilerInfo2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_removeProgrammedInterval(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1105,17 +1105,17 @@ func (ec *executionContext) fieldContext_Mutation_removeProgrammedInterval(ctx c
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "state":
-				return ec.fieldContext_Boiler_state(ctx, field)
+				return ec.fieldContext_BoilerInfo_state(ctx, field)
 			case "minTemp":
-				return ec.fieldContext_Boiler_minTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_minTemp(ctx, field)
 			case "maxTemp":
-				return ec.fieldContext_Boiler_maxTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
 			case "targetTemp":
-				return ec.fieldContext_Boiler_targetTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_targetTemp(ctx, field)
 			case "programmedIntervals":
-				return ec.fieldContext_Boiler_programmedIntervals(ctx, field)
+				return ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Boiler", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type BoilerInfo", field.Name)
 		},
 	}
 	defer func() {
@@ -1334,9 +1334,9 @@ func (ec *executionContext) _Query_boiler(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Boiler)
+	res := resTmp.(*model.BoilerInfo)
 	fc.Result = res
-	return ec.marshalNBoiler2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx, field.Selections, res)
+	return ec.marshalNBoilerInfo2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_boiler(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1348,17 +1348,17 @@ func (ec *executionContext) fieldContext_Query_boiler(ctx context.Context, field
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "state":
-				return ec.fieldContext_Boiler_state(ctx, field)
+				return ec.fieldContext_BoilerInfo_state(ctx, field)
 			case "minTemp":
-				return ec.fieldContext_Boiler_minTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_minTemp(ctx, field)
 			case "maxTemp":
-				return ec.fieldContext_Boiler_maxTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
 			case "targetTemp":
-				return ec.fieldContext_Boiler_targetTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_targetTemp(ctx, field)
 			case "programmedIntervals":
-				return ec.fieldContext_Boiler_programmedIntervals(ctx, field)
+				return ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Boiler", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type BoilerInfo", field.Name)
 		},
 	}
 	return fc, nil
@@ -1640,7 +1640,7 @@ func (ec *executionContext) _Subscription_boiler(ctx context.Context, field grap
 	}
 	return func(ctx context.Context) graphql.Marshaler {
 		select {
-		case res, ok := <-resTmp.(<-chan *model.Boiler):
+		case res, ok := <-resTmp.(<-chan *model.BoilerInfo):
 			if !ok {
 				return nil
 			}
@@ -1648,7 +1648,7 @@ func (ec *executionContext) _Subscription_boiler(ctx context.Context, field grap
 				w.Write([]byte{'{'})
 				graphql.MarshalString(field.Alias).MarshalGQL(w)
 				w.Write([]byte{':'})
-				ec.marshalNBoiler2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx, field.Selections, res).MarshalGQL(w)
+				ec.marshalNBoilerInfo2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInfo(ctx, field.Selections, res).MarshalGQL(w)
 				w.Write([]byte{'}'})
 			})
 		case <-ctx.Done():
@@ -1666,17 +1666,17 @@ func (ec *executionContext) fieldContext_Subscription_boiler(ctx context.Context
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "state":
-				return ec.fieldContext_Boiler_state(ctx, field)
+				return ec.fieldContext_BoilerInfo_state(ctx, field)
 			case "minTemp":
-				return ec.fieldContext_Boiler_minTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_minTemp(ctx, field)
 			case "maxTemp":
-				return ec.fieldContext_Boiler_maxTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
 			case "targetTemp":
-				return ec.fieldContext_Boiler_targetTemp(ctx, field)
+				return ec.fieldContext_BoilerInfo_targetTemp(ctx, field)
 			case "programmedIntervals":
-				return ec.fieldContext_Boiler_programmedIntervals(ctx, field)
+				return ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Boiler", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type BoilerInfo", field.Name)
 		},
 	}
 	return fc, nil
@@ -3641,36 +3641,36 @@ func (ec *executionContext) unmarshalInputProgrammedIntervalInput(ctx context.Co
 
 // region    **************************** object.gotpl ****************************
 
-var boilerImplementors = []string{"Boiler"}
+var boilerInfoImplementors = []string{"BoilerInfo"}
 
-func (ec *executionContext) _Boiler(ctx context.Context, sel ast.SelectionSet, obj *model.Boiler) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, boilerImplementors)
+func (ec *executionContext) _BoilerInfo(ctx context.Context, sel ast.SelectionSet, obj *model.BoilerInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, boilerInfoImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	deferred := make(map[string]*graphql.FieldSet)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("Boiler")
+			out.Values[i] = graphql.MarshalString("BoilerInfo")
 		case "state":
-			out.Values[i] = ec._Boiler_state(ctx, field, obj)
+			out.Values[i] = ec._BoilerInfo_state(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "minTemp":
-			out.Values[i] = ec._Boiler_minTemp(ctx, field, obj)
+			out.Values[i] = ec._BoilerInfo_minTemp(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "maxTemp":
-			out.Values[i] = ec._Boiler_maxTemp(ctx, field, obj)
+			out.Values[i] = ec._BoilerInfo_maxTemp(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "targetTemp":
-			out.Values[i] = ec._Boiler_targetTemp(ctx, field, obj)
+			out.Values[i] = ec._BoilerInfo_targetTemp(ctx, field, obj)
 		case "programmedIntervals":
-			out.Values[i] = ec._Boiler_programmedIntervals(ctx, field, obj)
+			out.Values[i] = ec._BoilerInfo_programmedIntervals(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4319,18 +4319,18 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) marshalNBoiler2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx context.Context, sel ast.SelectionSet, v model.Boiler) graphql.Marshaler {
-	return ec._Boiler(ctx, sel, &v)
+func (ec *executionContext) marshalNBoilerInfo2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInfo(ctx context.Context, sel ast.SelectionSet, v model.BoilerInfo) graphql.Marshaler {
+	return ec._BoilerInfo(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNBoiler2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx context.Context, sel ast.SelectionSet, v *model.Boiler) graphql.Marshaler {
+func (ec *executionContext) marshalNBoilerInfo2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInfo(ctx context.Context, sel ast.SelectionSet, v *model.BoilerInfo) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
-	return ec._Boiler(ctx, sel, v)
+	return ec._BoilerInfo(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNBoilerInput2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInput(ctx context.Context, v interface{}) (model.BoilerInput, error) {
