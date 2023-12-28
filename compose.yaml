@@ -6,18 +6,24 @@ services:
       context: app
       dockerfile: ../dockerfiles/app.Dockerfile
     network_mode: host
+    depends_on:
+      - controller
 
   controller:
     build:
       context: .
       dockerfile: dockerfiles/controller.Dockerfile
     network_mode: host
+    depends_on:
+      - redis
 
   worker:
     build:
       context: .
       dockerfile: dockerfiles/worker.Dockerfile
     network_mode: host
+    depends_on:
+      - redis
 
   redis:
     image: redis/redis-stack-server:latest
