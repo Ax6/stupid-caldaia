@@ -1,10 +1,25 @@
-APP_IMAGE=stupid-caldaia
+APP_IMAGE=stupid-caldaia-app
 TARGET_MACHINE=pi@192.168.1.112
 CONTROLLER_IMAGE=stupid-caldaia-controller
 WORKER_IMAGE=stupid-caldaia-worker
 
+run:
+	docker-compose up
+
+run-on-target:
+	ssh $(TARGET_MACHINE) 'cd stupid-caldaia && make run'
+
+bundle-client: build-app transfer-app
+
+bundle-server: build-executables transfer-executables
+	ssh $(TARGET_MACHINE) 'cd stupid-caldaia && make docker-build-controller'
+	ssh $(TARGET_MACHINE) 'cd stupid-caldaia && make docker-build-worker'
+
 build-app:
-	docker build -t $(APP_IMAGE) -f dockerfiles/app.Dockerfile app
+	docker buildx build --platform=linux/arm64 -t $(APP_IMAGE) -f dockerfiles/app.Dockerfile app
+
+transfer-app:
+	docker save $(APP_IMAGE) | bzip2 | pv | ssh $(TARGET_MACHINE) 'bunzip2 | docker load'
 
 docker-build-controller:
 	docker buildx build --build-context executables=/home/pi/bin/stupid-caldaia -t $(CONTROLLER_IMAGE) -f dockerfiles/controller.Dockerfile .

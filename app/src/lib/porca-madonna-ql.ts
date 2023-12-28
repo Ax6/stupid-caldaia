@@ -5,13 +5,15 @@ import { gql, GraphQLClient } from 'graphql-request';
 import { onMount } from 'svelte';
 import { writable } from 'svelte/store';
 import type { Writable } from 'svelte/store';
-import { PUBLIC_SERVER_HOST } from '$env/static/public';
+import { PUBLIC_SERVER_HOST, PUBLIC_CLIENT_HOST } from '$env/static/public';
 
 const SERVER_HOST = PUBLIC_SERVER_HOST || 'localhost';
+const CLIENT_HOST = PUBLIC_CLIENT_HOST || 'localhost';
+const HOST = typeof window !== 'undefined' ? CLIENT_HOST : SERVER_HOST;
 
 const client = {
-	http: new GraphQLClient(`http://${SERVER_HOST}:8080/query`),
-	ws: typeof window !== 'undefined' ? createClient({ url: `ws://${SERVER_HOST}:8080/query` }) : null
+	http: new GraphQLClient(`http://${HOST}:8080/query`),
+	ws: typeof window !== 'undefined' ? createClient({ url: `ws://${HOST}:8080/query` }) : null
 };
 
 async function porca<T>(query: string, variables?: any): Promise<T> {
