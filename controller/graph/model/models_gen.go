@@ -16,14 +16,6 @@ type BoilerInfo struct {
 	ProgrammedIntervals []*ProgrammedInterval `json:"programmedIntervals"`
 }
 
-type BoilerInput struct {
-	State               *State                     `json:"state,omitempty"`
-	MinTemp             *float64                   `json:"minTemp,omitempty"`
-	MaxTemp             *float64                   `json:"maxTemp,omitempty"`
-	TargetTemp          *float64                   `json:"targetTemp,omitempty"`
-	ProgrammedIntervals []*ProgrammedIntervalInput `json:"programmedIntervals,omitempty"`
-}
-
 type Measure struct {
 	Value     float64   `json:"value"`
 	Timestamp time.Time `json:"timestamp"`
@@ -31,14 +23,6 @@ type Measure struct {
 
 type ProgrammedInterval struct {
 	ID         string        `json:"id"`
-	Start      time.Time     `json:"start"`
-	Duration   time.Duration `json:"duration"`
-	TargetTemp float64       `json:"targetTemp"`
-	RepeatDays []DayOfWeek   `json:"repeatDays"`
-}
-
-type ProgrammedIntervalInput struct {
-	ID         *string       `json:"id,omitempty"`
 	Start      time.Time     `json:"start"`
 	Duration   time.Duration `json:"duration"`
 	TargetTemp float64       `json:"targetTemp"`

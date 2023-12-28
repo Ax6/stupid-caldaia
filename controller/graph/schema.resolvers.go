@@ -11,23 +11,23 @@ import (
 )
 
 // UpdateBoiler is the resolver for the updateBoiler field.
-func (r *mutationResolver) UpdateBoiler(ctx context.Context, config model.BoilerInput) (*model.BoilerInfo, error) {
-	if config.State != nil {
-		_, err := r.Resolver.Boiler.Switch(ctx, *config.State)
+func (r *mutationResolver) UpdateBoiler(ctx context.Context, state *model.State, minTemp *float64, maxTemp *float64) (*model.BoilerInfo, error) {
+	if state != nil {
+		_, err := r.Resolver.Boiler.Switch(ctx, *state)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if config.MinTemp != nil {
-		_, err := r.Resolver.Boiler.SetMinTemp(ctx, *config.MinTemp)
+	if minTemp != nil {
+		_, err := r.Resolver.Boiler.SetMinTemp(ctx, *minTemp)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if config.MaxTemp != nil {
-		_, err := r.Resolver.Boiler.SetMaxTemp(ctx, *config.MaxTemp)
+	if maxTemp != nil {
+		_, err := r.Resolver.Boiler.SetMaxTemp(ctx, *maxTemp)
 		if err != nil {
 			return nil, err
 		}
@@ -37,13 +37,20 @@ func (r *mutationResolver) UpdateBoiler(ctx context.Context, config model.Boiler
 }
 
 // SetProgrammedInterval is the resolver for the setProgrammedInterval field.
-func (r *mutationResolver) SetProgrammedInterval(ctx context.Context, interval model.ProgrammedIntervalInput) (*model.ProgrammedInterval, error) {
-	return r.Boiler.SetProgrammedInterval(ctx, &interval)
+func (r *mutationResolver) SetProgrammedInterval(ctx context.Context, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []model.DayOfWeek) (*model.ProgrammedInterval, error) {
+	opt := &model.ProgrammedInterval{
+		ID:         *id,
+		Start:      start,
+		Duration:   duration,
+		TargetTemp: targetTemp,
+		RepeatDays: repeatDays,
+	}
+	return r.Resolver.Boiler.SetProgrammedInterval(ctx, opt)
 }
 
 // DeleteProgrammedInterval is the resolver for the deleteProgrammedInterval field.
 func (r *mutationResolver) DeleteProgrammedInterval(ctx context.Context, id string) (bool, error) {
-	return r.Boiler.DeleteProgrammedInterval(ctx, id)
+	return r.Resolver.Boiler.DeleteProgrammedInterval(ctx, id)
 }
 
 // Boiler is the resolver for the boiler field.

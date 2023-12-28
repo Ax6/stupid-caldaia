@@ -18,7 +18,15 @@ export type Boiler = {
 	state: State;
 	minTemp: number;
 	maxTemp: number;
+	programmedIntervals: ProgrammedInterval[];
+};
+
+export type ProgrammedInterval = {
+	id: string;
+	start: Date;
+	duration: number;
 	targetTemp: number;
+	repeatDays: [string];
 };
 
 export type State = 'OFF' | 'ON';
@@ -35,7 +43,12 @@ export async function load(): Promise<PageData> {
 				state
 				minTemp
 				maxTemp
-				targetTemp
+				programmedIntervals {
+					id
+					start
+					duration
+					targetTemp
+				}
 			}
 			sensor(name: "temperatura", position: "centrale") {
 				timestamp

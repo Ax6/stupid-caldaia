@@ -78,7 +78,19 @@ func (c *Boiler) SetMaxTemp(ctx context.Context, temp float64) (*float64, error)
 	return &info.MaxTemp, err
 }
 
-func (c *Boiler) SetProgrammedInterval(ctx context.Context, opt *ProgrammedIntervalInput) (*ProgrammedInterval, error) {
+func (c *Boiler) GetProgrammedIntervals(ctx context.Context) (map[string]*ProgrammedInterval, error) {
+	info, err := c.GetInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	programmedIntervals := make(map[string]*ProgrammedInterval)
+	for _, interval := range info.ProgrammedIntervals {
+		programmedIntervals[interval.ID] = interval
+	}
+	return programmedIntervals, nil
+}
+
+func (c *Boiler) SetProgrammedInterval(ctx context.Context, opt *ProgrammedInterval) (*ProgrammedInterval, error) {
 	info, err := c.GetInfo(ctx)
 	if err != nil {
 		return nil, err
@@ -88,29 +100,17 @@ func (c *Boiler) SetProgrammedInterval(ctx context.Context, opt *ProgrammedInter
 	}
 
 	// Map programmed intervals to a map for easier lookup
-	lookupProgrammedIntervals := make(map[string]*ProgrammedInterval)
-	for _, interval := range info.ProgrammedIntervals {
-		lookupProgrammedIntervals[interval.ID] = interval
+	lookupProgrammedIntervals, err := c.GetProgrammedIntervals(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	// If ID is present in the opt, use that, otherwise generate a new one
-	inputID := *opt.ID
-	if opt.ID == nil {
+	if opt.ID == "" {
 		// Create ours if not present
-		inputID = fmt.Sprintf("%d", time.Now().UnixNano())
-	} else if lookupProgrammedIntervals[*opt.ID] == nil {
-		// If present but not in the map, return an error
-		return nil, fmt.Errorf("Specified ID not present in programmed intervals")
+		opt.ID = fmt.Sprintf("%d", time.Now().UnixNano())
 	}
-
-	programmedInterval := ProgrammedInterval{
-		ID:         inputID,
-		Start:      opt.Start,
-		Duration:   opt.Duration,
-		TargetTemp: opt.TargetTemp,
-	}
-
-	lookupProgrammedIntervals[inputID] = &programmedInterval
+	lookupProgrammedIntervals[opt.ID] = opt
 
 	// Convert back to a slice
 	programmedIntervals := make([]*ProgrammedInterval, 0, len(lookupProgrammedIntervals))
@@ -120,7 +120,7 @@ func (c *Boiler) SetProgrammedInterval(ctx context.Context, opt *ProgrammedInter
 	info.ProgrammedIntervals = programmedIntervals
 
 	err = c.save(ctx, info)
-	return &programmedInterval, err
+	return opt, err
 }
 
 func (c *Boiler) DeleteProgrammedInterval(ctx context.Context, id string) (bool, error) {

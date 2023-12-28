@@ -64,8 +64,8 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		DeleteProgrammedInterval func(childComplexity int, id string) int
-		SetProgrammedInterval    func(childComplexity int, interval model.ProgrammedIntervalInput) int
-		UpdateBoiler             func(childComplexity int, config model.BoilerInput) int
+		SetProgrammedInterval    func(childComplexity int, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []model.DayOfWeek) int
+		UpdateBoiler             func(childComplexity int, state *model.State, minTemp *float64, maxTemp *float64) int
 	}
 
 	ProgrammedInterval struct {
@@ -89,8 +89,8 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	UpdateBoiler(ctx context.Context, config model.BoilerInput) (*model.BoilerInfo, error)
-	SetProgrammedInterval(ctx context.Context, interval model.ProgrammedIntervalInput) (*model.ProgrammedInterval, error)
+	UpdateBoiler(ctx context.Context, state *model.State, minTemp *float64, maxTemp *float64) (*model.BoilerInfo, error)
+	SetProgrammedInterval(ctx context.Context, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []model.DayOfWeek) (*model.ProgrammedInterval, error)
 	DeleteProgrammedInterval(ctx context.Context, id string) (bool, error)
 }
 type QueryResolver interface {
@@ -186,7 +186,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.SetProgrammedInterval(childComplexity, args["interval"].(model.ProgrammedIntervalInput)), true
+		return e.complexity.Mutation.SetProgrammedInterval(childComplexity, args["id"].(*string), args["start"].(time.Time), args["duration"].(time.Duration), args["targetTemp"].(float64), args["repeatDays"].([]model.DayOfWeek)), true
 
 	case "Mutation.updateBoiler":
 		if e.complexity.Mutation.UpdateBoiler == nil {
@@ -198,7 +198,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateBoiler(childComplexity, args["config"].(model.BoilerInput)), true
+		return e.complexity.Mutation.UpdateBoiler(childComplexity, args["state"].(*model.State), args["minTemp"].(*float64), args["maxTemp"].(*float64)), true
 
 	case "ProgrammedInterval.duration":
 		if e.complexity.ProgrammedInterval.Duration == nil {
@@ -292,10 +292,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e, 0, 0, make(chan graphql.DeferredResult)}
-	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
-		ec.unmarshalInputBoilerInput,
-		ec.unmarshalInputProgrammedIntervalInput,
-	)
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap()
 	first := true
 
 	switch rc.Operation.Operation {
@@ -446,30 +443,84 @@ func (ec *executionContext) field_Mutation_deleteProgrammedInterval_args(ctx con
 func (ec *executionContext) field_Mutation_setProgrammedInterval_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.ProgrammedIntervalInput
-	if tmp, ok := rawArgs["interval"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("interval"))
-		arg0, err = ec.unmarshalNProgrammedIntervalInput2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInput(ctx, tmp)
+	var arg0 *string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["interval"] = arg0
+	args["id"] = arg0
+	var arg1 time.Time
+	if tmp, ok := rawArgs["start"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
+		arg1, err = ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["start"] = arg1
+	var arg2 time.Duration
+	if tmp, ok := rawArgs["duration"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("duration"))
+		arg2, err = ec.unmarshalNDuration2timeᚐDuration(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["duration"] = arg2
+	var arg3 float64
+	if tmp, ok := rawArgs["targetTemp"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetTemp"))
+		arg3, err = ec.unmarshalNFloat2float64(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["targetTemp"] = arg3
+	var arg4 []model.DayOfWeek
+	if tmp, ok := rawArgs["repeatDays"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repeatDays"))
+		arg4, err = ec.unmarshalNDayOfWeek2ᚕstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeekᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["repeatDays"] = arg4
 	return args, nil
 }
 
 func (ec *executionContext) field_Mutation_updateBoiler_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.BoilerInput
-	if tmp, ok := rawArgs["config"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("config"))
-		arg0, err = ec.unmarshalNBoilerInput2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInput(ctx, tmp)
+	var arg0 *model.State
+	if tmp, ok := rawArgs["state"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+		arg0, err = ec.unmarshalOState2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["config"] = arg0
+	args["state"] = arg0
+	var arg1 *float64
+	if tmp, ok := rawArgs["minTemp"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minTemp"))
+		arg1, err = ec.unmarshalOFloat2ᚖfloat64(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["minTemp"] = arg1
+	var arg2 *float64
+	if tmp, ok := rawArgs["maxTemp"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxTemp"))
+		arg2, err = ec.unmarshalOFloat2ᚖfloat64(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["maxTemp"] = arg2
 	return args, nil
 }
 
@@ -906,7 +957,7 @@ func (ec *executionContext) _Mutation_updateBoiler(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateBoiler(rctx, fc.Args["config"].(model.BoilerInput))
+		return ec.resolvers.Mutation().UpdateBoiler(rctx, fc.Args["state"].(*model.State), fc.Args["minTemp"].(*float64), fc.Args["maxTemp"].(*float64))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -971,7 +1022,7 @@ func (ec *executionContext) _Mutation_setProgrammedInterval(ctx context.Context,
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().SetProgrammedInterval(rctx, fc.Args["interval"].(model.ProgrammedIntervalInput))
+		return ec.resolvers.Mutation().SetProgrammedInterval(rctx, fc.Args["id"].(*string), fc.Args["start"].(time.Time), fc.Args["duration"].(time.Duration), fc.Args["targetTemp"].(float64), fc.Args["repeatDays"].([]model.DayOfWeek))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3517,116 +3568,6 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputBoilerInput(ctx context.Context, obj interface{}) (model.BoilerInput, error) {
-	var it model.BoilerInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"state", "minTemp", "maxTemp", "targetTemp", "programmedIntervals"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "state":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
-			data, err := ec.unmarshalOState2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.State = data
-		case "minTemp":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minTemp"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.MinTemp = data
-		case "maxTemp":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxTemp"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.MaxTemp = data
-		case "targetTemp":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetTemp"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.TargetTemp = data
-		case "programmedIntervals":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("programmedIntervals"))
-			data, err := ec.unmarshalOProgrammedIntervalInput2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInputᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ProgrammedIntervals = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputProgrammedIntervalInput(ctx context.Context, obj interface{}) (model.ProgrammedIntervalInput, error) {
-	var it model.ProgrammedIntervalInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"id", "start", "duration", "targetTemp", "repeatDays"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ID = data
-		case "start":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
-			data, err := ec.unmarshalNTime2timeᚐTime(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Start = data
-		case "duration":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("duration"))
-			data, err := ec.unmarshalNDuration2timeᚐDuration(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Duration = data
-		case "targetTemp":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetTemp"))
-			data, err := ec.unmarshalNFloat2float64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.TargetTemp = data
-		case "repeatDays":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repeatDays"))
-			data, err := ec.unmarshalNDayOfWeek2ᚕstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeekᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.RepeatDays = data
-		}
-	}
-
-	return it, nil
-}
-
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -4330,11 +4271,6 @@ func (ec *executionContext) marshalNBoilerInfo2ᚖstupidᚑcaldaiaᚋcontroller�
 	return ec._BoilerInfo(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNBoilerInput2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInput(ctx context.Context, v interface{}) (model.BoilerInput, error) {
-	res, err := ec.unmarshalInputBoilerInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4580,16 +4516,6 @@ func (ec *executionContext) marshalNProgrammedInterval2ᚖstupidᚑcaldaiaᚋcon
 		return graphql.Null
 	}
 	return ec._ProgrammedInterval(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNProgrammedIntervalInput2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInput(ctx context.Context, v interface{}) (model.ProgrammedIntervalInput, error) {
-	res, err := ec.unmarshalInputProgrammedIntervalInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNProgrammedIntervalInput2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInput(ctx context.Context, v interface{}) (*model.ProgrammedIntervalInput, error) {
-	res, err := ec.unmarshalInputProgrammedIntervalInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNState2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx context.Context, v interface{}) (model.State, error) {
@@ -4948,26 +4874,6 @@ func (ec *executionContext) marshalOMeasure2ᚖstupidᚑcaldaiaᚋcontrollerᚋg
 		return graphql.Null
 	}
 	return ec._Measure(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOProgrammedIntervalInput2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInputᚄ(ctx context.Context, v interface{}) ([]*model.ProgrammedIntervalInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []interface{}
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
-	var err error
-	res := make([]*model.ProgrammedIntervalInput, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNProgrammedIntervalInput2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
 }
 
 func (ec *executionContext) unmarshalOState2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx context.Context, v interface{}) (*model.State, error) {

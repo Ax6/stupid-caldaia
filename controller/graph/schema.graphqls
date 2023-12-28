@@ -62,23 +62,13 @@ scalar Duration
 # Mutations
 # ---------------------------------------------
 type Mutation {
-  updateBoiler(config: BoilerInput!): BoilerInfo!
-  setProgrammedInterval(interval: ProgrammedIntervalInput!): ProgrammedInterval!
+  updateBoiler(state: State, minTemp: Float, maxTemp: Float): BoilerInfo!
+  setProgrammedInterval(
+    id: ID
+    start: Time!
+    duration: Duration!
+    targetTemp: Float!
+    repeatDays: [DayOfWeek!]!
+  ): ProgrammedInterval!
   deleteProgrammedInterval(id: ID!): Boolean!
-}
-
-input BoilerInput {
-  state: State
-  minTemp: Float
-  maxTemp: Float
-  targetTemp: Float
-  programmedIntervals: [ProgrammedIntervalInput!]
-}
-
-input ProgrammedIntervalInput {
-  id: ID
-  start: Time!
-  duration: Duration!
-  targetTemp: Float!
-  repeatDays: [DayOfWeek!]!
 }
