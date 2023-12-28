@@ -11,8 +11,7 @@
 					state
 				}
 			}
-		`,
-		{}
+		`
 	);
 
 	async function handleClick() {
