@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: app
+      dockerfile: dockerfiles/app.Dockerfile
+    ports:
+      - "4173:4173"
+
+  controller:
+    build:
+      context: controller
+      dockerfile: dockerfiles/controller.Dockerfile
+    ports:
+      - "8080:8080"
+
+  redis:
+    image: redis/redis-stack-server:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+  
+volumes:
+  redis-data:
