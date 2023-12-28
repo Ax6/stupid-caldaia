@@ -7,4 +7,4 @@ RUN npm install
 COPY . ./
 RUN npm run build
 
-CMD ["vite", "preview", "--host"]
+CMD ["npm", "run", "host"]
