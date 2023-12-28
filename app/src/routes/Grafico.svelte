@@ -35,7 +35,11 @@
 			const d0 = data.sensorRange[i - 1];
 			const d1 = data.sensorRange[i];
 			if (!d0 || !d1) return;
-			d = x0 - new Date(d0.timestamp) > new Date(d1.timestamp) - x0 ? d1 : d0;
+			d =
+				x0.getTime() - new Date(d0.timestamp).getTime() >
+				new Date(d1.timestamp).getTime() - x0.getTime()
+					? d1
+					: d0;
 			if (Math.abs(yScale(d.value) - mouseRelToPlot[1]) > 20) return;
 			if (Math.abs(xScale(new Date(d.timestamp)) - mouseRelToPlot[0]) > 20) return;
 		}
