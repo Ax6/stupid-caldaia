@@ -23,8 +23,8 @@ export type Boiler = {
 
 export type ProgrammedInterval = {
 	id: string;
-	start: Date;
-	duration: number;
+	start: string;
+	duration: string;
 	targetTemp: number;
 	repeatDays: [string];
 };

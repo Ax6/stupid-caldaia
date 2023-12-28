@@ -16,7 +16,7 @@
 		const result = await porca<Boiler>(
 			gql`
 				mutation setState($state: State!) {
-					updateBoiler(config: { state: $state }) {
+					updateBoiler(state: $state ) {
 						state
 					}
 				}
