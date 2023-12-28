@@ -66,7 +66,8 @@ func NewSensor(ctx context.Context, client *redis.Client, opt *SensorOptions) (*
 // If to is nil, it will be set to the current time.
 func (s *Sensor) Get(ctx context.Context, from time.Time, to time.Time) ([]*Measure, error) {
 	// Get data from Redis
-	var fromTimestamp, toTimestamp int
+	fromTimestamp := int(from.UnixMilli())
+	toTimestamp := int(to.UnixMilli())
 	data, err := s.Client.TSRange(ctx, s.compactedKey, fromTimestamp, toTimestamp).Result()
 	if err != nil {
 		return nil, err
