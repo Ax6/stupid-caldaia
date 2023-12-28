@@ -28,7 +28,7 @@ services:
       context: .
       dockerfile: dockerfiles/controller.Dockerfile
     devices:
-      - "/dev/gpiochip0:/dev/gpiochip0"
+      - "/dev/mem:/dev/mem"
     ports:
       - 8080:8080
     depends_on:
