@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -107,24 +106,18 @@ func (s *Sensor) Listen(ctx context.Context) (<-chan *Measure, error) {
 	return temperatureUpdates, nil
 }
 
-func (s *Sensor) Add(ctx context.Context, measure *Measure) error {
-	_, err := s.Client.TSAdd(ctx, s.Id, int(measure.Timestamp.UnixMilli()), measure.Value).Result()
+func (s *Sensor) AddSample(ctx context.Context, sample *Measure) error {
+	// Publish measure
+	message, err := json.Marshal(sample)
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (s *Sensor) Sample(ctx context.Context) (*Measure, error) {
-	// Create a random number for testing
-	value := rand.Float64() * 100
-	sample := Measure{Timestamp: time.Now(), Value: value}
-
-	// Publish the sample
-	message, err := json.Marshal(sample)
-	if err != nil {
-		return &sample, err
-	}
 	err = s.Client.Publish(ctx, s.Id, message).Err()
-	return &sample, err
+
+	// Add sample to Redis
+	_, err = s.Client.TSAdd(ctx, s.Id, int(sample.Timestamp.UnixMilli()), sample.Value).Result()
+	if err != nil {
+		return err
+	}
+	return err
 }

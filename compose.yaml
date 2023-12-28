@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   app:
@@ -7,6 +7,18 @@ services:
       dockerfile: ../dockerfiles/app.Dockerfile
     ports:
       - 4173:4173
+    depends_on:
+      - controller
+    networks:
+      - stupid_network
+
+  worker:
+    build:
+      context: .
+      dockerfile: dockerfiles/worker.Dockerfile
+    network_mode: host
+    devices:
+      - "/dev/i2c-1:/dev/i2c-1"
     depends_on:
       - controller
     networks:
@@ -23,23 +35,13 @@ services:
     networks:
       - stupid_network
 
-  worker:
-    build:
-      context: .
-      dockerfile: dockerfiles/worker.Dockerfile
-    network_mode: host
-    depends_on:
-      - redis
-    networks:
-      - stupid_network
-
   redis:
     image: redis/redis-stack-server:latest
     networks:
       - stupid_network
     volumes:
       - redis_data:/data
-  
+
 networks:
   stupid_network:
     driver: bridge

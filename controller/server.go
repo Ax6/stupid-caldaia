@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"stupid-caldaia/controller/graph"
-	"stupid-caldaia/controller/graph/model"
 	"stupid-caldaia/controller/store"
 
 	"github.com/gorilla/websocket"
@@ -19,23 +18,9 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/redis/go-redis/v9"
 )
 
 const defaultPort = "8080"
-
-func makeResolverDependencies(ctx context.Context, config store.Config) (*redis.Client, map[string]*model.Sensor) {
-	client := redis.NewClient(&config.Redis)
-	sensors := make(map[string]*model.Sensor)
-	for _, sensorOptions := range config.Sensors {
-		sensor, err := model.NewSensor(ctx, client, &sensorOptions)
-		if err != nil {
-			panic(err)
-		}
-		sensors[sensor.Id] = sensor
-	}
-	return client, sensors
-}
 
 func main() {
 	config, err := store.LoadConfig()
@@ -43,7 +28,7 @@ func main() {
 		panic(err)
 	}
 
-	client, sensors := makeResolverDependencies(context.Background(), config)
+	client, sensors := config.CreateObjects(context.Background())
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
