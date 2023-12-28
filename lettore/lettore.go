@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/parMaster/htu21"
-	"github.com/stianeikeland/go-rpio/v4"
 	"periph.io/x/conn/v3/i2c/i2creg"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/host/v3"
@@ -29,10 +28,6 @@ func main() {
 	}
 
 	_, sensors, _ := config.CreateObjects(ctx)
-
-	pin := rpio.Pin(config.Boiler.SwitchPin)
-	pin.Output()
-	pin.High()
 
 	for {
 		// Preparing to read sensor
