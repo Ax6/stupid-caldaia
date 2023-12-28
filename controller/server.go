@@ -2,12 +2,14 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"stupid-caldaia/controller/graph"
+	"stupid-caldaia/controller/graph/model"
 	"stupid-caldaia/controller/store"
 
 	"github.com/gorilla/websocket"
@@ -22,12 +24,26 @@ import (
 
 const defaultPort = "8080"
 
+func makeResolverDependencies(ctx context.Context, config store.Config) (*redis.Client, map[string]*model.Sensor) {
+	client := redis.NewClient(&config.Redis)
+	sensors := make(map[string]*model.Sensor)
+	for _, sensorOptions := range config.Sensors {
+		sensor, err := model.NewSensor(ctx, client, &sensorOptions)
+		if err != nil {
+			panic(err)
+		}
+		sensors[sensor.Id] = sensor
+	}
+	return client, sensors
+}
+
 func main() {
 	config, err := store.LoadConfig()
 	if err != nil {
 		panic(err)
 	}
-	client := redis.NewClient(&config.Redis)
+
+	client, sensors := makeResolverDependencies(context.Background(), config)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
@@ -39,7 +55,7 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{ Client: client }}))
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{Client: client, Sensors: sensors}}))
 	srv.AddTransport(transport.SSE{})
 	srv.AddTransport(transport.POST{})
 	srv.AddTransport(transport.Websocket{
@@ -54,7 +70,6 @@ func main() {
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", c.Handler(srv))
-
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

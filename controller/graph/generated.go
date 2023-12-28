@@ -13,6 +13,7 @@ import (
 	"stupid-caldaia/controller/graph/model"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
@@ -49,31 +50,55 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	Boiler struct {
+		MaxTemp             func(childComplexity int) int
+		MinTemp             func(childComplexity int) int
+		ProgrammedIntervals func(childComplexity int) int
+		State               func(childComplexity int) int
+		TargetTemp          func(childComplexity int) int
+	}
+
+	Measure struct {
+		Timestamp func(childComplexity int) int
+		Value     func(childComplexity int) int
+	}
+
 	Mutation struct {
-		SetSwitch func(childComplexity int, state *model.State) int
+		AddProgrammedInterval    func(childComplexity int, interval model.ProgrammedIntervalInput) int
+		RemoveProgrammedInterval func(childComplexity int, id string) int
+		UpdateBoiler             func(childComplexity int, config model.BoilerInput) int
+	}
+
+	ProgrammedInterval struct {
+		Duration   func(childComplexity int) int
+		ID         func(childComplexity int) int
+		Start      func(childComplexity int) int
+		TargetTemp func(childComplexity int) int
 	}
 
 	Query struct {
-		Switch func(childComplexity int) int
+		Boiler      func(childComplexity int) int
+		Temperature func(childComplexity int, from *time.Time, to *time.Time, position string) int
 	}
 
 	Subscription struct {
-		OnTemperatureChange func(childComplexity int, position string) int
-	}
-
-	Switch struct {
-		State func(childComplexity int) int
+		Boiler      func(childComplexity int) int
+		Temperature func(childComplexity int, from *time.Time, position string) int
 	}
 }
 
 type MutationResolver interface {
-	SetSwitch(ctx context.Context, state *model.State) (model.State, error)
+	UpdateBoiler(ctx context.Context, config model.BoilerInput) (*model.Boiler, error)
+	AddProgrammedInterval(ctx context.Context, interval model.ProgrammedIntervalInput) (*model.Boiler, error)
+	RemoveProgrammedInterval(ctx context.Context, id string) (*model.Boiler, error)
 }
 type QueryResolver interface {
-	Switch(ctx context.Context) (*model.Switch, error)
+	Boiler(ctx context.Context) (*model.Boiler, error)
+	Temperature(ctx context.Context, from *time.Time, to *time.Time, position string) ([]*model.Measure, error)
 }
 type SubscriptionResolver interface {
-	OnTemperatureChange(ctx context.Context, position string) (<-chan float64, error)
+	Temperature(ctx context.Context, from *time.Time, position string) (<-chan *model.Measure, error)
+	Boiler(ctx context.Context) (<-chan *model.Boiler, error)
 }
 
 type executableSchema struct {
@@ -95,43 +120,156 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
-	case "Mutation.setSwitch":
-		if e.complexity.Mutation.SetSwitch == nil {
+	case "Boiler.maxTemp":
+		if e.complexity.Boiler.MaxTemp == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_setSwitch_args(context.TODO(), rawArgs)
+		return e.complexity.Boiler.MaxTemp(childComplexity), true
+
+	case "Boiler.minTemp":
+		if e.complexity.Boiler.MinTemp == nil {
+			break
+		}
+
+		return e.complexity.Boiler.MinTemp(childComplexity), true
+
+	case "Boiler.programmedIntervals":
+		if e.complexity.Boiler.ProgrammedIntervals == nil {
+			break
+		}
+
+		return e.complexity.Boiler.ProgrammedIntervals(childComplexity), true
+
+	case "Boiler.state":
+		if e.complexity.Boiler.State == nil {
+			break
+		}
+
+		return e.complexity.Boiler.State(childComplexity), true
+
+	case "Boiler.targetTemp":
+		if e.complexity.Boiler.TargetTemp == nil {
+			break
+		}
+
+		return e.complexity.Boiler.TargetTemp(childComplexity), true
+
+	case "Measure.timestamp":
+		if e.complexity.Measure.Timestamp == nil {
+			break
+		}
+
+		return e.complexity.Measure.Timestamp(childComplexity), true
+
+	case "Measure.value":
+		if e.complexity.Measure.Value == nil {
+			break
+		}
+
+		return e.complexity.Measure.Value(childComplexity), true
+
+	case "Mutation.addProgrammedInterval":
+		if e.complexity.Mutation.AddProgrammedInterval == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addProgrammedInterval_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.SetSwitch(childComplexity, args["state"].(*model.State)), true
+		return e.complexity.Mutation.AddProgrammedInterval(childComplexity, args["interval"].(model.ProgrammedIntervalInput)), true
 
-	case "Query.switch":
-		if e.complexity.Query.Switch == nil {
+	case "Mutation.removeProgrammedInterval":
+		if e.complexity.Mutation.RemoveProgrammedInterval == nil {
 			break
 		}
 
-		return e.complexity.Query.Switch(childComplexity), true
-
-	case "Subscription.onTemperatureChange":
-		if e.complexity.Subscription.OnTemperatureChange == nil {
-			break
-		}
-
-		args, err := ec.field_Subscription_onTemperatureChange_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_removeProgrammedInterval_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Subscription.OnTemperatureChange(childComplexity, args["position"].(string)), true
+		return e.complexity.Mutation.RemoveProgrammedInterval(childComplexity, args["id"].(string)), true
 
-	case "Switch.state":
-		if e.complexity.Switch.State == nil {
+	case "Mutation.updateBoiler":
+		if e.complexity.Mutation.UpdateBoiler == nil {
 			break
 		}
 
-		return e.complexity.Switch.State(childComplexity), true
+		args, err := ec.field_Mutation_updateBoiler_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateBoiler(childComplexity, args["config"].(model.BoilerInput)), true
+
+	case "ProgrammedInterval.duration":
+		if e.complexity.ProgrammedInterval.Duration == nil {
+			break
+		}
+
+		return e.complexity.ProgrammedInterval.Duration(childComplexity), true
+
+	case "ProgrammedInterval.id":
+		if e.complexity.ProgrammedInterval.ID == nil {
+			break
+		}
+
+		return e.complexity.ProgrammedInterval.ID(childComplexity), true
+
+	case "ProgrammedInterval.start":
+		if e.complexity.ProgrammedInterval.Start == nil {
+			break
+		}
+
+		return e.complexity.ProgrammedInterval.Start(childComplexity), true
+
+	case "ProgrammedInterval.targetTemp":
+		if e.complexity.ProgrammedInterval.TargetTemp == nil {
+			break
+		}
+
+		return e.complexity.ProgrammedInterval.TargetTemp(childComplexity), true
+
+	case "Query.boiler":
+		if e.complexity.Query.Boiler == nil {
+			break
+		}
+
+		return e.complexity.Query.Boiler(childComplexity), true
+
+	case "Query.temperature":
+		if e.complexity.Query.Temperature == nil {
+			break
+		}
+
+		args, err := ec.field_Query_temperature_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Temperature(childComplexity, args["from"].(*time.Time), args["to"].(*time.Time), args["position"].(string)), true
+
+	case "Subscription.boiler":
+		if e.complexity.Subscription.Boiler == nil {
+			break
+		}
+
+		return e.complexity.Subscription.Boiler(childComplexity), true
+
+	case "Subscription.temperature":
+		if e.complexity.Subscription.Temperature == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_temperature_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.Temperature(childComplexity, args["from"].(*time.Time), args["position"].(string)), true
 
 	}
 	return 0, false
@@ -140,7 +278,10 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e, 0, 0, make(chan graphql.DeferredResult)}
-	inputUnmarshalMap := graphql.BuildUnmarshalerMap()
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputBoilerInput,
+		ec.unmarshalInputProgrammedIntervalInput,
+	)
 	first := true
 
 	switch rc.Operation.Operation {
@@ -273,18 +414,48 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Mutation_setSwitch_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_addProgrammedInterval_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *model.State
-	if tmp, ok := rawArgs["state"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
-		arg0, err = ec.unmarshalOState2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, tmp)
+	var arg0 model.ProgrammedIntervalInput
+	if tmp, ok := rawArgs["interval"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("interval"))
+		arg0, err = ec.unmarshalNProgrammedIntervalInput2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["state"] = arg0
+	args["interval"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeProgrammedInterval_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateBoiler_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.BoilerInput
+	if tmp, ok := rawArgs["config"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("config"))
+		arg0, err = ec.unmarshalNBoilerInput2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["config"] = arg0
 	return args, nil
 }
 
@@ -303,18 +474,60 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Subscription_onTemperatureChange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_temperature_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["position"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("position"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+	var arg0 *time.Time
+	if tmp, ok := rawArgs["from"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
+		arg0, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["position"] = arg0
+	args["from"] = arg0
+	var arg1 *time.Time
+	if tmp, ok := rawArgs["to"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+		arg1, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["to"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["position"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("position"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["position"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_temperature_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *time.Time
+	if tmp, ok := rawArgs["from"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
+		arg0, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["from"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["position"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("position"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["position"] = arg1
 	return args, nil
 }
 
@@ -356,8 +569,8 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _Mutation_setSwitch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_setSwitch(ctx, field)
+func (ec *executionContext) _Boiler_state(ctx context.Context, field graphql.CollectedField, obj *model.Boiler) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Boiler_state(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -370,7 +583,7 @@ func (ec *executionContext) _Mutation_setSwitch(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().SetSwitch(rctx, fc.Args["state"].(*model.State))
+		return obj.State, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -387,32 +600,21 @@ func (ec *executionContext) _Mutation_setSwitch(ctx context.Context, field graph
 	return ec.marshalNState2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_setSwitch(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Boiler_state(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Mutation",
+		Object:     "Boiler",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type State does not have child fields")
 		},
 	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_setSwitch_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_switch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_switch(ctx, field)
+func (ec *executionContext) _Boiler_minTemp(ctx context.Context, field graphql.CollectedField, obj *model.Boiler) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Boiler_minTemp(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -425,7 +627,7 @@ func (ec *executionContext) _Query_switch(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Switch(rctx)
+		return obj.MinTemp, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -437,12 +639,660 @@ func (ec *executionContext) _Query_switch(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Switch)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalNSwitch2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐSwitch(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_switch(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Boiler_minTemp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Boiler",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Boiler_maxTemp(ctx context.Context, field graphql.CollectedField, obj *model.Boiler) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Boiler_maxTemp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MaxTemp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Boiler_maxTemp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Boiler",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Boiler_targetTemp(ctx context.Context, field graphql.CollectedField, obj *model.Boiler) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Boiler_targetTemp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TargetTemp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*float64)
+	fc.Result = res
+	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Boiler_targetTemp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Boiler",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Boiler_programmedIntervals(ctx context.Context, field graphql.CollectedField, obj *model.Boiler) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Boiler_programmedIntervals(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ProgrammedIntervals, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.ProgrammedInterval)
+	fc.Result = res
+	return ec.marshalNProgrammedInterval2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Boiler_programmedIntervals(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Boiler",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ProgrammedInterval_id(ctx, field)
+			case "start":
+				return ec.fieldContext_ProgrammedInterval_start(ctx, field)
+			case "duration":
+				return ec.fieldContext_ProgrammedInterval_duration(ctx, field)
+			case "targetTemp":
+				return ec.fieldContext_ProgrammedInterval_targetTemp(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ProgrammedInterval", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Measure_value(ctx context.Context, field graphql.CollectedField, obj *model.Measure) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Measure_value(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Value, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Measure_value(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Measure",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Measure_timestamp(ctx context.Context, field graphql.CollectedField, obj *model.Measure) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Measure_timestamp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Timestamp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Measure_timestamp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Measure",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateBoiler(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateBoiler(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateBoiler(rctx, fc.Args["config"].(model.BoilerInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Boiler)
+	fc.Result = res
+	return ec.marshalNBoiler2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateBoiler(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "state":
+				return ec.fieldContext_Boiler_state(ctx, field)
+			case "minTemp":
+				return ec.fieldContext_Boiler_minTemp(ctx, field)
+			case "maxTemp":
+				return ec.fieldContext_Boiler_maxTemp(ctx, field)
+			case "targetTemp":
+				return ec.fieldContext_Boiler_targetTemp(ctx, field)
+			case "programmedIntervals":
+				return ec.fieldContext_Boiler_programmedIntervals(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Boiler", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateBoiler_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addProgrammedInterval(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addProgrammedInterval(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddProgrammedInterval(rctx, fc.Args["interval"].(model.ProgrammedIntervalInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Boiler)
+	fc.Result = res
+	return ec.marshalNBoiler2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addProgrammedInterval(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "state":
+				return ec.fieldContext_Boiler_state(ctx, field)
+			case "minTemp":
+				return ec.fieldContext_Boiler_minTemp(ctx, field)
+			case "maxTemp":
+				return ec.fieldContext_Boiler_maxTemp(ctx, field)
+			case "targetTemp":
+				return ec.fieldContext_Boiler_targetTemp(ctx, field)
+			case "programmedIntervals":
+				return ec.fieldContext_Boiler_programmedIntervals(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Boiler", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addProgrammedInterval_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeProgrammedInterval(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_removeProgrammedInterval(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveProgrammedInterval(rctx, fc.Args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Boiler)
+	fc.Result = res
+	return ec.marshalNBoiler2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeProgrammedInterval(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "state":
+				return ec.fieldContext_Boiler_state(ctx, field)
+			case "minTemp":
+				return ec.fieldContext_Boiler_minTemp(ctx, field)
+			case "maxTemp":
+				return ec.fieldContext_Boiler_maxTemp(ctx, field)
+			case "targetTemp":
+				return ec.fieldContext_Boiler_targetTemp(ctx, field)
+			case "programmedIntervals":
+				return ec.fieldContext_Boiler_programmedIntervals(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Boiler", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeProgrammedInterval_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProgrammedInterval_id(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProgrammedInterval_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProgrammedInterval_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProgrammedInterval",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProgrammedInterval_start(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProgrammedInterval_start(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Start, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProgrammedInterval_start(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProgrammedInterval",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProgrammedInterval_duration(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProgrammedInterval_duration(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Duration, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Duration)
+	fc.Result = res
+	return ec.marshalNDuration2timeᚐDuration(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProgrammedInterval_duration(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProgrammedInterval",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Duration does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProgrammedInterval_targetTemp(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProgrammedInterval_targetTemp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TargetTemp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProgrammedInterval_targetTemp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProgrammedInterval",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_boiler(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_boiler(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Boiler(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Boiler)
+	fc.Result = res
+	return ec.marshalNBoiler2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_boiler(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -451,10 +1301,79 @@ func (ec *executionContext) fieldContext_Query_switch(ctx context.Context, field
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "state":
-				return ec.fieldContext_Switch_state(ctx, field)
+				return ec.fieldContext_Boiler_state(ctx, field)
+			case "minTemp":
+				return ec.fieldContext_Boiler_minTemp(ctx, field)
+			case "maxTemp":
+				return ec.fieldContext_Boiler_maxTemp(ctx, field)
+			case "targetTemp":
+				return ec.fieldContext_Boiler_targetTemp(ctx, field)
+			case "programmedIntervals":
+				return ec.fieldContext_Boiler_programmedIntervals(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Switch", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Boiler", field.Name)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_temperature(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_temperature(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Temperature(rctx, fc.Args["from"].(*time.Time), fc.Args["to"].(*time.Time), fc.Args["position"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Measure)
+	fc.Result = res
+	return ec.marshalNMeasure2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐMeasureᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_temperature(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "value":
+				return ec.fieldContext_Measure_value(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_Measure_timestamp(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Measure", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_temperature_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -588,8 +1507,8 @@ func (ec *executionContext) fieldContext_Query___schema(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Subscription_onTemperatureChange(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
-	fc, err := ec.fieldContext_Subscription_onTemperatureChange(ctx, field)
+func (ec *executionContext) _Subscription_temperature(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_temperature(ctx, field)
 	if err != nil {
 		return nil
 	}
@@ -602,7 +1521,7 @@ func (ec *executionContext) _Subscription_onTemperatureChange(ctx context.Contex
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().OnTemperatureChange(rctx, fc.Args["position"].(string))
+		return ec.resolvers.Subscription().Temperature(rctx, fc.Args["from"].(*time.Time), fc.Args["position"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -616,7 +1535,7 @@ func (ec *executionContext) _Subscription_onTemperatureChange(ctx context.Contex
 	}
 	return func(ctx context.Context) graphql.Marshaler {
 		select {
-		case res, ok := <-resTmp.(<-chan float64):
+		case res, ok := <-resTmp.(<-chan *model.Measure):
 			if !ok {
 				return nil
 			}
@@ -624,7 +1543,7 @@ func (ec *executionContext) _Subscription_onTemperatureChange(ctx context.Contex
 				w.Write([]byte{'{'})
 				graphql.MarshalString(field.Alias).MarshalGQL(w)
 				w.Write([]byte{':'})
-				ec.marshalNFloat2float64(ctx, field.Selections, res).MarshalGQL(w)
+				ec.marshalNMeasure2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐMeasure(ctx, field.Selections, res).MarshalGQL(w)
 				w.Write([]byte{'}'})
 			})
 		case <-ctx.Done():
@@ -633,14 +1552,20 @@ func (ec *executionContext) _Subscription_onTemperatureChange(ctx context.Contex
 	}
 }
 
-func (ec *executionContext) fieldContext_Subscription_onTemperatureChange(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Subscription_temperature(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Subscription",
 		Field:      field,
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
+			switch field.Name {
+			case "value":
+				return ec.fieldContext_Measure_value(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_Measure_timestamp(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Measure", field.Name)
 		},
 	}
 	defer func() {
@@ -650,52 +1575,78 @@ func (ec *executionContext) fieldContext_Subscription_onTemperatureChange(ctx co
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Subscription_onTemperatureChange_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Subscription_temperature_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Switch_state(ctx context.Context, field graphql.CollectedField, obj *model.Switch) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Switch_state(ctx, field)
+func (ec *executionContext) _Subscription_boiler(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_boiler(ctx, field)
 	if err != nil {
-		return graphql.Null
+		return nil
 	}
 	ctx = graphql.WithFieldContext(ctx, fc)
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
+			ret = nil
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.State, nil
+		return ec.resolvers.Subscription().Boiler(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
-		return graphql.Null
+		return nil
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
 		}
-		return graphql.Null
+		return nil
 	}
-	res := resTmp.(model.State)
-	fc.Result = res
-	return ec.marshalNState2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, field.Selections, res)
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan *model.Boiler):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalNBoiler2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
 }
 
-func (ec *executionContext) fieldContext_Switch_state(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Subscription_boiler(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Switch",
+		Object:     "Subscription",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type State does not have child fields")
+			switch field.Name {
+			case "state":
+				return ec.fieldContext_Boiler_state(ctx, field)
+			case "minTemp":
+				return ec.fieldContext_Boiler_minTemp(ctx, field)
+			case "maxTemp":
+				return ec.fieldContext_Boiler_maxTemp(ctx, field)
+			case "targetTemp":
+				return ec.fieldContext_Boiler_targetTemp(ctx, field)
+			case "programmedIntervals":
+				return ec.fieldContext_Boiler_programmedIntervals(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Boiler", field.Name)
 		},
 	}
 	return fc, nil
@@ -2474,6 +3425,109 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputBoilerInput(ctx context.Context, obj interface{}) (model.BoilerInput, error) {
+	var it model.BoilerInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"state", "minTemp", "maxTemp", "targetTemp", "programmedIntervals"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "state":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			data, err := ec.unmarshalOState2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.State = data
+		case "minTemp":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minTemp"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinTemp = data
+		case "maxTemp":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxTemp"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxTemp = data
+		case "targetTemp":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetTemp"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TargetTemp = data
+		case "programmedIntervals":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("programmedIntervals"))
+			data, err := ec.unmarshalOProgrammedIntervalInput2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ProgrammedIntervals = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputProgrammedIntervalInput(ctx context.Context, obj interface{}) (model.ProgrammedIntervalInput, error) {
+	var it model.ProgrammedIntervalInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "start", "duration", "targetTemp"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "start":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
+			data, err := ec.unmarshalNDuration2timeᚐDuration(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Start = data
+		case "duration":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("duration"))
+			data, err := ec.unmarshalNDuration2timeᚐDuration(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Duration = data
+		case "targetTemp":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetTemp"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TargetTemp = data
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -2481,6 +3535,106 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var boilerImplementors = []string{"Boiler"}
+
+func (ec *executionContext) _Boiler(ctx context.Context, sel ast.SelectionSet, obj *model.Boiler) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, boilerImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Boiler")
+		case "state":
+			out.Values[i] = ec._Boiler_state(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "minTemp":
+			out.Values[i] = ec._Boiler_minTemp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxTemp":
+			out.Values[i] = ec._Boiler_maxTemp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "targetTemp":
+			out.Values[i] = ec._Boiler_targetTemp(ctx, field, obj)
+		case "programmedIntervals":
+			out.Values[i] = ec._Boiler_programmedIntervals(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var measureImplementors = []string{"Measure"}
+
+func (ec *executionContext) _Measure(ctx context.Context, sel ast.SelectionSet, obj *model.Measure) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, measureImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Measure")
+		case "value":
+			out.Values[i] = ec._Measure_value(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "timestamp":
+			out.Values[i] = ec._Measure_timestamp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
 
 var mutationImplementors = []string{"Mutation"}
 
@@ -2501,10 +3655,78 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "setSwitch":
+		case "updateBoiler":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_setSwitch(ctx, field)
+				return ec._Mutation_updateBoiler(ctx, field)
 			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "addProgrammedInterval":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addProgrammedInterval(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "removeProgrammedInterval":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeProgrammedInterval(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var programmedIntervalImplementors = []string{"ProgrammedInterval"}
+
+func (ec *executionContext) _ProgrammedInterval(ctx context.Context, sel ast.SelectionSet, obj *model.ProgrammedInterval) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, programmedIntervalImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ProgrammedInterval")
+		case "id":
+			out.Values[i] = ec._ProgrammedInterval_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "start":
+			out.Values[i] = ec._ProgrammedInterval_start(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "duration":
+			out.Values[i] = ec._ProgrammedInterval_duration(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "targetTemp":
+			out.Values[i] = ec._ProgrammedInterval_targetTemp(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -2550,7 +3772,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "switch":
+		case "boiler":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -2559,7 +3781,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_switch(ctx, field)
+				res = ec._Query_boiler(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "temperature":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_temperature(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -2616,50 +3860,13 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	}
 
 	switch fields[0].Name {
-	case "onTemperatureChange":
-		return ec._Subscription_onTemperatureChange(ctx, fields[0])
+	case "temperature":
+		return ec._Subscription_temperature(ctx, fields[0])
+	case "boiler":
+		return ec._Subscription_boiler(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
-}
-
-var switchImplementors = []string{"Switch"}
-
-func (ec *executionContext) _Switch(ctx context.Context, sel ast.SelectionSet, obj *model.Switch) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, switchImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Switch")
-		case "state":
-			out.Values[i] = ec._Switch_state(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
 }
 
 var __DirectiveImplementors = []string{"__Directive"}
@@ -2988,6 +4195,25 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) marshalNBoiler2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx context.Context, sel ast.SelectionSet, v model.Boiler) graphql.Marshaler {
+	return ec._Boiler(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBoiler2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoiler(ctx context.Context, sel ast.SelectionSet, v *model.Boiler) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Boiler(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNBoilerInput2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐBoilerInput(ctx context.Context, v interface{}) (model.BoilerInput, error) {
+	res, err := ec.unmarshalInputBoilerInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -2995,6 +4221,21 @@ func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interf
 
 func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.SelectionSet, v bool) graphql.Marshaler {
 	res := graphql.MarshalBoolean(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNDuration2timeᚐDuration(ctx context.Context, v interface{}) (time.Duration, error) {
+	res, err := graphql.UnmarshalDuration(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDuration2timeᚐDuration(ctx context.Context, sel ast.SelectionSet, v time.Duration) graphql.Marshaler {
+	res := graphql.MarshalDuration(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -3016,6 +4257,143 @@ func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.S
 		}
 	}
 	return graphql.WrapContextMarshaler(ctx, res)
+}
+
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalID(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalID(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) marshalNMeasure2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐMeasure(ctx context.Context, sel ast.SelectionSet, v model.Measure) graphql.Marshaler {
+	return ec._Measure(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNMeasure2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐMeasureᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Measure) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNMeasure2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐMeasure(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNMeasure2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐMeasure(ctx context.Context, sel ast.SelectionSet, v *model.Measure) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Measure(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNProgrammedInterval2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ProgrammedInterval) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNProgrammedInterval2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedInterval(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNProgrammedInterval2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedInterval(ctx context.Context, sel ast.SelectionSet, v *model.ProgrammedInterval) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ProgrammedInterval(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNProgrammedIntervalInput2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInput(ctx context.Context, v interface{}) (model.ProgrammedIntervalInput, error) {
+	res, err := ec.unmarshalInputProgrammedIntervalInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNProgrammedIntervalInput2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInput(ctx context.Context, v interface{}) (*model.ProgrammedIntervalInput, error) {
+	res, err := ec.unmarshalInputProgrammedIntervalInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNState2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx context.Context, v interface{}) (model.State, error) {
@@ -3043,18 +4421,19 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNSwitch2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐSwitch(ctx context.Context, sel ast.SelectionSet, v model.Switch) graphql.Marshaler {
-	return ec._Switch(ctx, sel, &v)
+func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	res, err := graphql.UnmarshalTime(v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNSwitch2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐSwitch(ctx context.Context, sel ast.SelectionSet, v *model.Switch) graphql.Marshaler {
-	if v == nil {
+func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	res := graphql.MarshalTime(v)
+	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
 		}
-		return graphql.Null
 	}
-	return ec._Switch(ctx, sel, v)
+	return res
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -3336,6 +4715,58 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v interface{}) (*float64, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalFloatContext(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel ast.SelectionSet, v *float64) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalFloatContext(*v)
+	return graphql.WrapContextMarshaler(ctx, res)
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalID(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOProgrammedIntervalInput2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInputᚄ(ctx context.Context, v interface{}) ([]*model.ProgrammedIntervalInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.ProgrammedIntervalInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNProgrammedIntervalInput2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
 func (ec *executionContext) unmarshalOState2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx context.Context, v interface{}) (*model.State, error) {
 	if v == nil {
 		return nil, nil
@@ -3365,6 +4796,22 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	res := graphql.MarshalString(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalTime(*v)
 	return res
 }
 

@@ -3,23 +3,65 @@
 # https://gqlgen.com/getting-started/
 
 type Subscription {
-  onTemperatureChange(position: String!): Float!
+  temperature(from: Time, position: String!): Measure!
+  boiler: Boiler!
 }
 
 type Query {
-  switch: Switch!
+  boiler: Boiler!
+  temperature(from: Time, to: Time, position: String!): [Measure!]!
 }
 
-type Mutation {
-  setSwitch(state: State): State!
+type Measure {
+  value: Float!
+  timestamp: Time!
 }
 
-type Switch {
+type Boiler {
   state: State!
+  minTemp: Float!
+  maxTemp: Float!
+  targetTemp: Float
+  programmedIntervals: [ProgrammedInterval!]!
+}
+
+type ProgrammedInterval {
+  id: ID!
+  start: Time!
+  duration: Duration!
+  targetTemp: Float!
 }
 
 enum State {
   ON
   OFF
   UNKNOWN
+}
+
+scalar Time
+
+scalar Duration
+
+# ---------------------------------------------
+# Mutations
+# ---------------------------------------------
+type Mutation {
+  updateBoiler(config: BoilerInput!): Boiler!
+  addProgrammedInterval(interval: ProgrammedIntervalInput!): Boiler!
+  removeProgrammedInterval(id: ID!): Boiler!
+}
+
+input BoilerInput {
+  state: State
+  minTemp: Float
+  maxTemp: Float
+  targetTemp: Float
+  programmedIntervals: [ProgrammedIntervalInput!]
+}
+
+input ProgrammedIntervalInput {
+  id: ID
+  start: Duration!
+  duration: Duration!
+  targetTemp: Float!
 }

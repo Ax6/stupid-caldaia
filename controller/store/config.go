@@ -3,6 +3,7 @@ package store
 import (
 	"encoding/json"
 	"os"
+	"stupid-caldaia/controller/graph/model"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -12,13 +13,13 @@ const (
 )
 
 type Config struct {
-	Sensors []SensorOptions
-	Redis  redis.Options
+	Sensors []model.SensorOptions
+	Redis   redis.Options
 }
 
 func LoadConfig() (Config, error) {
 	// Read config file and parse it
-	file, err := os.Open(CONFIG_PATH)	
+	file, err := os.Open(CONFIG_PATH)
 	if err != nil {
 		return Config{}, err
 	}

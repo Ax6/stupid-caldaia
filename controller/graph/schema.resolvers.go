@@ -7,49 +7,43 @@ package graph
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"stupid-caldaia/controller/graph/model"
+	"time"
 )
 
-// SetSwitch is the resolver for the setSwitch field.
-func (r *mutationResolver) SetSwitch(ctx context.Context, state *model.State) (model.State, error) {
-	return model.Caldaia.Set(*state)
+// UpdateBoiler is the resolver for the updateBoiler field.
+func (r *mutationResolver) UpdateBoiler(ctx context.Context, config model.BoilerInput) (*model.Boiler, error) {
+	panic(fmt.Errorf("not implemented: UpdateBoiler - updateBoiler"))
 }
 
-// Switch is the resolver for the switch field.
-func (r *queryResolver) Switch(ctx context.Context) (*model.Switch, error) {
-	return &model.Caldaia, nil
+// AddProgrammedInterval is the resolver for the addProgrammedInterval field.
+func (r *mutationResolver) AddProgrammedInterval(ctx context.Context, interval model.ProgrammedIntervalInput) (*model.Boiler, error) {
+	panic(fmt.Errorf("not implemented: AddProgrammedInterval - addProgrammedInterval"))
 }
 
-// OnTemperatureChange is the resolver for the onTemperatureChange field.
-func (r *subscriptionResolver) OnTemperatureChange(ctx context.Context, position string) (<-chan float64, error) {
-	key := "temperatura:" + position
-	sub := r.Client.Subscribe(ctx, key)
+// RemoveProgrammedInterval is the resolver for the removeProgrammedInterval field.
+func (r *mutationResolver) RemoveProgrammedInterval(ctx context.Context, id string) (*model.Boiler, error) {
+	panic(fmt.Errorf("not implemented: RemoveProgrammedInterval - removeProgrammedInterval"))
+}
 
-	// Channel to send temperature updates to the GraphQL subscription
-	temperatureUpdates := make(chan float64)
+// Boiler is the resolver for the boiler field.
+func (r *queryResolver) Boiler(ctx context.Context) (*model.Boiler, error) {
+	panic(fmt.Errorf("not implemented: Boiler - boiler"))
+}
 
-	// Goroutine to handle incoming messages from the Redis channel
-	go func() {
-		defer sub.Close()
+// Temperature is the resolver for the temperature field.
+func (r *queryResolver) Temperature(ctx context.Context, from *time.Time, to *time.Time, position string) ([]*model.Measure, error) {
+	return r.Sensors["temperatura:"+position].Get(ctx, from, to)
+}
 
-		// Receive messages from the Redis channel
-		for msg := range sub.Channel() {
-			// Parse the temperature value from the message
-			temperature, err := strconv.ParseFloat(msg.Payload, 64)
-			if err != nil {
-				// Handle error (e.g., log it)
-				fmt.Printf("Error parsing temperature: %v\n", err)
-				continue
-			}
+// Temperature is the resolver for the temperature field.
+func (r *subscriptionResolver) Temperature(ctx context.Context, from *time.Time, position string) (<-chan *model.Measure, error) {
+	return r.Sensors["temperatura:"+position].Subscribe()
+}
 
-			// Send the temperature to the GraphQL subscription channel
-			temperatureUpdates <- temperature
-		}
-		close(temperatureUpdates) // Close the channel when done
-	}()
-
-	return temperatureUpdates, nil
+// Boiler is the resolver for the boiler field.
+func (r *subscriptionResolver) Boiler(ctx context.Context) (<-chan *model.Boiler, error) {
+	panic(fmt.Errorf("not implemented: Boiler - boiler"))
 }
 
 // Mutation returns MutationResolver implementation.

@@ -6,10 +6,42 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 )
 
-type Switch struct {
-	State State `json:"state"`
+type Boiler struct {
+	State               State                 `json:"state"`
+	MinTemp             float64               `json:"minTemp"`
+	MaxTemp             float64               `json:"maxTemp"`
+	TargetTemp          *float64              `json:"targetTemp,omitempty"`
+	ProgrammedIntervals []*ProgrammedInterval `json:"programmedIntervals"`
+}
+
+type BoilerInput struct {
+	State               *State                     `json:"state,omitempty"`
+	MinTemp             *float64                   `json:"minTemp,omitempty"`
+	MaxTemp             *float64                   `json:"maxTemp,omitempty"`
+	TargetTemp          *float64                   `json:"targetTemp,omitempty"`
+	ProgrammedIntervals []*ProgrammedIntervalInput `json:"programmedIntervals,omitempty"`
+}
+
+type Measure struct {
+	Value     float64   `json:"value"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+type ProgrammedInterval struct {
+	ID         string        `json:"id"`
+	Start      time.Time     `json:"start"`
+	Duration   time.Duration `json:"duration"`
+	TargetTemp float64       `json:"targetTemp"`
+}
+
+type ProgrammedIntervalInput struct {
+	ID         *string       `json:"id,omitempty"`
+	Start      time.Duration `json:"start"`
+	Duration   time.Duration `json:"duration"`
+	TargetTemp float64       `json:"targetTemp"`
 }
 
 type State string
