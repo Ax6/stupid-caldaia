@@ -13,7 +13,43 @@ import (
 
 // UpdateBoiler is the resolver for the updateBoiler field.
 func (r *mutationResolver) UpdateBoiler(ctx context.Context, config model.BoilerInput) (*model.Boiler, error) {
-	panic(fmt.Errorf("not implemented: UpdateBoiler - updateBoiler"))
+	boilerStore, err := model.GetCaldaia(ctx, r.Client)
+	if config.State != nil {
+		_, err = boilerStore.Switch(ctx, *config.State)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if config.MinTemp != nil {
+		_, err = boilerStore.SetMinTemp(ctx, *config.MinTemp)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if config.MaxTemp != nil {
+		_, err = boilerStore.SetMaxTemp(ctx, *config.MaxTemp)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if config.TargetTemp != nil {
+		_, err = boilerStore.SetTargetTemp(ctx, *config.TargetTemp)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// if config.ProgrammedIntervals != nil {
+	// 	_, err = boilerStore.SetProgrammedIntervals(ctx, config.ProgrammedIntervals)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
+
+	return &boilerStore.Boiler, err
 }
 
 // AddProgrammedInterval is the resolver for the addProgrammedInterval field.
@@ -28,7 +64,8 @@ func (r *mutationResolver) RemoveProgrammedInterval(ctx context.Context, id stri
 
 // Boiler is the resolver for the boiler field.
 func (r *queryResolver) Boiler(ctx context.Context) (*model.Boiler, error) {
-	panic(fmt.Errorf("not implemented: Boiler - boiler"))
+	boilerStore, err := model.GetCaldaia(ctx, r.Client)
+	return &boilerStore.Boiler, err
 }
 
 // Temperature is the resolver for the temperature field.
