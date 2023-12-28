@@ -33,5 +33,5 @@ build-executables:
 
 transfer-executables:
 	ssh $(TARGET_MACHINE) "mkdir -p /home/pi/bin/stupid-caldaia"
-	scp controller/controller $(TARGET_MACHINE):/home/pi/bin/stupid-caldaia/controller
-	scp lettore/lettore $(TARGET_MACHINE):/home/pi/bin/stupid-caldaia/lettore
+	scp controller/controller $(TARGET_MACHINE):/home/pi/bin/stupid-caldaia/controller && rm controller/controller
+	scp lettore/lettore $(TARGET_MACHINE):/home/pi/bin/stupid-caldaia/lettore && rm lettore/lettore
