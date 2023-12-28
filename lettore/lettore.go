@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"stupid-caldaia/controller/graph/model"
 	"stupid-caldaia/controller/store"
@@ -83,14 +84,25 @@ func main() {
 
 		// Get the temperature of the last 20 minutes
 		centrale := sensors["temperatura:centrale"]
-		currentTemperature, err := centrale.GetAverage(ctx, time.Now().Add(-20*time.Minute), time.Now())
+		averageTemperature, err := centrale.GetAverage(ctx, time.Now().Add(-20*time.Minute), time.Now())
+		if err != nil {
+			panic(err)
+		}
+		currentTemperature := htu21Data.Temperature.Celsius()
+		if averageTemperature != nil {
+			currentTemperature = *averageTemperature
+		}
 
 		shouldHeat := false
 		for _, programmedInterval := range programmedIntervals {
 			// Check if the programmed interval is active
 			projectedStartTime := time.Now().Add(-programmedInterval.Duration)
 			ruleIsActive := projectedStartTime.Before(programmedInterval.Start)
+			// print for debug
+			fmt.Printf("Rule %s is active: %t\n", programmedInterval.ID, ruleIsActive)
 			temperatureNotOk := currentTemperature < programmedInterval.TargetTemp
+			// print for debug
+			fmt.Printf("%f < %f: %t\n", currentTemperature, programmedInterval.TargetTemp, temperatureNotOk)
 			shouldHeat = ruleIsActive && temperatureNotOk
 			if shouldHeat {
 				break

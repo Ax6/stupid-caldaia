@@ -39,10 +39,8 @@ func (c *Boiler) Switch(ctx context.Context, targetState State) (*State, error) 
 	}
 	switch targetState {
 	case StateOn:
-		fmt.Println("Switching relay on")
 		pin.High()
 	case StateOff:
-		fmt.Println("Switching relay off")
 		pin.Low()
 	default:
 		return &targetState, fmt.Errorf("Invalid state to set")

@@ -115,14 +115,18 @@ func (s *Sensor) AddSample(ctx context.Context, sample *Measure) error {
 	return err
 }
 
-func (s *Sensor) GetAverage(ctx context.Context, from time.Time, to time.Time) (float64, error) {
+func (s *Sensor) GetAverage(ctx context.Context, from time.Time, to time.Time) (*float64, error) {
 	measureRange, err := s.Get(ctx, from, to)
 	if err != nil {
-		return 0, err
+		return nil, err
+	}
+	if len(measureRange) == 0 {
+		return nil, nil
 	}
 	sum := 0.0
 	for _, measure := range measureRange {
 		sum += measure.Value
 	}
-	return sum / float64(len(measureRange)), nil
+	average := sum / float64(len(measureRange))
+	return &average, nil
 }
