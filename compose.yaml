@@ -41,6 +41,8 @@ services:
       - stupid_network
     volumes:
       - redis_data:/data
+    ports:
+      - 6379:6379 # for sneaky access
 
 networks:
   stupid_network:
