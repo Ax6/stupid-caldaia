@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   app:
+    restart: always
     build:
       context: app
       dockerfile: ../dockerfiles/app.Dockerfile
@@ -13,6 +14,7 @@ services:
       - stupid_network
 
   worker:
+    restart: always
     build:
       context: .
       dockerfile: dockerfiles/worker.Dockerfile
@@ -27,6 +29,7 @@ services:
       - stupid_network
 
   controller:
+    restart: always
     build:
       context: .
       dockerfile: dockerfiles/controller.Dockerfile
@@ -38,6 +41,7 @@ services:
       - stupid_network
 
   redis:
+    restart: always
     image: redis/redis-stack-server:latest
     networks:
       - stupid_network
