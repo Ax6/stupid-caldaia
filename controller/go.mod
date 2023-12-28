@@ -7,7 +7,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/redis/go-redis/v9 v9.3.1
 	github.com/rs/cors v1.10.1
-	github.com/stianeikeland/go-rpio v4.2.0+incompatible
+	github.com/stianeikeland/go-rpio/v4 v4.6.0
 	github.com/vektah/gqlparser/v2 v2.5.10
 )
 
