@@ -1,11 +1,16 @@
 <script lang="ts">
-    import StupidCaldaia from '$lib/stupidCaldaia/index.svelte';
+    import { graphql } from '$houdini';
+
+    const temperatura = graphql(`
+        subscription ItemUpdate($position: String!) {
+            onTemperaturaChange(position: "centrale")
+        }
+    `)
 </script>
 
 
 <section>
     <div>
         <h1>Temperatura attuale</h1>
-        <p>Stupid Caldaia</p>
     </div>
 </section>
