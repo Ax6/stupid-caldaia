@@ -1,5 +1,5 @@
 TARGET_ADDRESS=raspberrypi.local
-TARGET_SHH=pi@raspberrypi
+TARGET_SHH=pi@192.168.1.112
 APP_IMAGE_NAME=stupid-caldaia
 DOCKER_REGISTRY=$(TARGET_ADDRESS):5000
 
@@ -13,6 +13,9 @@ bundle:
 # Make sure pv is installed first: sudo apt-get install pv
 push:
 	docker push $(APP_IMAGE)
+
+transfer:
+	docker save $(APP_IMAGE) | pv | ssh $(TARGET_SHH) "docker load"
 
 
 # We need to host a registry on the target machine

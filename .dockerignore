@@ -1,0 +1,9 @@
+node_modules/
+.svelte-kit/
+.eslintignore
+.eslintrc.cjs
+.gitignore
+.prettierrc
+README.md
+svelte.config.js
+package-lock.json
