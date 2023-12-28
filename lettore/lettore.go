@@ -10,10 +10,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const (
-	CONFIG_PATH = "../config.json"
-)
-
 func main() {
 
 	ctx := context.Background()
