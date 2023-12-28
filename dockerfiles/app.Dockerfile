@@ -7,7 +7,7 @@ RUN npm install
 COPY . ./
 RUN npm run build
 
-ENV SERVER_HOST=controller
+ENV PUBLIC_SERVER_HOST=controller
 
 EXPOSE 4173
 
