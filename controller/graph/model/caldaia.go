@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/stianeikeland/go-rpio/v4"
 )
 
 type BoilerConfig struct {
@@ -18,12 +17,12 @@ type BoilerConfig struct {
 }
 
 type Boiler struct {
-	config BoilerConfig
+	Config BoilerConfig
 	client *redis.Client
 }
 
 func NewBoiler(ctx context.Context, client *redis.Client, config BoilerConfig) (*Boiler, error) {
-	boiler := Boiler{config, client}
+	boiler := Boiler{Config: config, client: client}
 	_, err := boiler.GetInfo(ctx)
 	return &boiler, err
 }
@@ -31,18 +30,11 @@ func NewBoiler(ctx context.Context, client *redis.Client, config BoilerConfig) (
 // Function to switch the relay on or off
 // Accepts only two values: "on" or "off"
 func (c *Boiler) Switch(ctx context.Context, targetState State) (*State, error) {
-	pin := rpio.Pin(c.config.SwitchPin)
-	pin.Output()
 	info, err := c.GetInfo(ctx)
 	if err != nil {
 		return nil, err
 	}
-	switch targetState {
-	case StateOn:
-		pin.High()
-	case StateOff:
-		pin.Low()
-	default:
+	if targetState != StateOn && targetState != StateOff {
 		return &targetState, fmt.Errorf("Invalid state to set")
 	}
 	info.State = targetState
@@ -153,7 +145,7 @@ func (c *Boiler) DeleteProgrammedInterval(ctx context.Context, id string) (bool,
 func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {
 	boilerUpdates := make(chan *BoilerInfo)
 	go func() {
-		sub := c.client.Subscribe(ctx, c.config.Name)
+		sub := c.client.Subscribe(ctx, c.Config.Name)
 		for msg := range sub.Channel() {
 			boiler := BoilerInfo{}
 			err := json.Unmarshal([]byte(msg.Payload), &boiler)
@@ -170,12 +162,12 @@ func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {
 }
 
 func (c *Boiler) GetInfo(ctx context.Context) (*BoilerInfo, error) {
-	data := c.client.Get(ctx, c.config.Name).Val()
+	data := c.client.Get(ctx, c.Config.Name).Val()
 	if data == "" {
 		defaultInfo := &BoilerInfo{
 			State:               StateUnknown,
-			MinTemp:             c.config.DefaultMinTemperature,
-			MaxTemp:             c.config.DefaultMaxTemperature,
+			MinTemp:             c.Config.DefaultMinTemperature,
+			MaxTemp:             c.Config.DefaultMaxTemperature,
 			ProgrammedIntervals: nil,
 		}
 		err := c.save(ctx, defaultInfo) // Save default values
@@ -192,10 +184,10 @@ func (c *Boiler) save(ctx context.Context, info *BoilerInfo) error {
 	if err != nil {
 		return err
 	}
-	err = c.client.Set(ctx, c.config.Name, data, 0).Err()
+	err = c.client.Set(ctx, c.Config.Name, data, 0).Err()
 	if err != nil {
 		return err
 	}
-	err = c.client.Publish(ctx, c.config.Name, data).Err()
+	err = c.client.Publish(ctx, c.Config.Name, data).Err()
 	return err
 }

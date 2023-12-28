@@ -30,10 +30,6 @@ services:
     build:
       context: .
       dockerfile: dockerfiles/controller.Dockerfile
-    devices:
-      - "/dev/gpiomem:/dev/gpiomem"
-      - "/dev/mem:/dev/mem"
-      - "/dev/gpiochip0:/dev/gpiochip0"
     ports:
       - 8080:8080
     depends_on:

@@ -4,10 +4,10 @@ go 1.21.3
 
 require (
 	github.com/99designs/gqlgen v0.17.41
+	github.com/google/go-cmp v0.6.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/redis/go-redis/v9 v9.3.1
 	github.com/rs/cors v1.10.1
-	github.com/stianeikeland/go-rpio/v4 v4.6.0
 	github.com/vektah/gqlparser/v2 v2.5.10
 )
 

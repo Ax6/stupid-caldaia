@@ -23,17 +23,15 @@ import (
 const defaultPort = "8080"
 
 func main() {
+	ctx := context.Background()
 	config, err := store.LoadConfig()
 	if err != nil {
 		panic(err)
 	}
 
-	close, err := config.OpenPin()
-	if err != nil {
-		panic(err)
-	}
-	defer close()
 	client, sensors, boiler := config.CreateObjects(context.Background())
+	go store.TemperatureChangeController(ctx, boiler, sensors["temperatura:centrale"])
+	go store.RuleChangeController(ctx, boiler, sensors["temperatura:centrale"])
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},

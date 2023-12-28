@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"stupid-caldaia/controller/graph/model"
 	"stupid-caldaia/controller/store"
 	"time"
 
 	"github.com/parMaster/htu21"
+	"github.com/stianeikeland/go-rpio/v4"
 	"periph.io/x/conn/v3/i2c/i2creg"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/host/v3"
@@ -23,25 +23,37 @@ var (
 	htu21Device *htu21.Dev
 )
 
-func main() {
-	ctx := context.Background()
-
-	config, err := store.LoadConfig()
+func ObserveState(ctx context.Context, boiler *model.Boiler) {
+	err := rpio.Open()
 	if err != nil {
-		panic(err)
+		log.Fatalf("Could not open pin...")
 	}
-	close, err := config.OpenPin()
+	pin := rpio.Pin(boiler.Config.SwitchPin)
+	listener, err := boiler.Listen(ctx)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Could not listen to boiler...")
 	}
-	defer close()
+	for info := range listener {
+		switch info.State {
+		case model.StateOn:
+			pin.High()
+		case model.StateOff:
+			pin.Low()
+		default:
+			break
+		}
+	}
+	defer func() {
+		pin.Output()
+		pin.Low()
+		rpio.Close()
+	}()
+}
 
-	_, sensors, boiler := config.CreateObjects(ctx)
-
+func ObserveSensor(ctx context.Context, sensors map[string]*model.Sensor) {
 	for {
 		// zzz
 		time.Sleep(1 * time.Second)
-
 		// Read sensors...
 		if _, err := host.Init(); err != nil {
 			log.Fatal(err)
@@ -73,45 +85,19 @@ func main() {
 			Timestamp: time.Now(),
 			Value:     float64(htu21Data.Humidity / physic.MilliRH * physic.PercentRH),
 		})
-
-		// And now use some logic
-
-		// Get all the programmed intervals
-		programmedIntervals, err := boiler.GetProgrammedIntervals(ctx)
-		if err != nil {
-			panic(err)
-		}
-
-		// Get the temperature of the last 20 minutes
-		centrale := sensors["temperatura:centrale"]
-		averageTemperature, err := centrale.GetAverage(ctx, time.Now().Add(-20*time.Minute), time.Now())
-		if err != nil {
-			panic(err)
-		}
-		currentTemperature := htu21Data.Temperature.Celsius()
-		if averageTemperature != nil {
-			currentTemperature = *averageTemperature
-		}
-
-		shouldHeat := false
-		for _, programmedInterval := range programmedIntervals {
-			// Check if the programmed interval is active
-			projectedStartTime := time.Now().Add(-programmedInterval.Duration)
-			ruleIsActive := projectedStartTime.Before(programmedInterval.Start)
-			// print for debug
-			fmt.Printf("Rule %s is active: %t\n", programmedInterval.ID, ruleIsActive)
-			temperatureNotOk := currentTemperature < programmedInterval.TargetTemp
-			// print for debug
-			fmt.Printf("%f < %f: %t\n", currentTemperature, programmedInterval.TargetTemp, temperatureNotOk)
-			shouldHeat = ruleIsActive && temperatureNotOk
-			if shouldHeat {
-				break
-			}
-		}
-		if shouldHeat {
-			boiler.Switch(ctx, model.StateOn)
-		} else {
-			boiler.Switch(ctx, model.StateOff)
-		}
 	}
+}
+
+func main() {
+	ctx := context.Background()
+
+	config, err := store.LoadConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	_, sensors, boiler := config.CreateObjects(ctx)
+
+	go ObserveSensor(ctx, sensors)
+	go ObserveState(ctx, boiler)
 }
