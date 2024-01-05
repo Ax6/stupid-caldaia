@@ -11,7 +11,7 @@
   ],
   "boiler": {
     "name": "caldaia",
-    "switchPin": 21,
+    "switchPin": 14,
     "defaultMinTemperature": 0,
     "defaultMaxTemperature": 30
   },
