@@ -32,6 +32,7 @@ func ObserveState(ctx context.Context, boiler *model.Boiler) {
 		log.Fatalf("Could not open pin...")
 	}
 	pin := rpio.Pin(boiler.Config.SwitchPin)
+	pin.Output()
 	listener, err := boiler.Listen(ctx)
 	if err != nil {
 		log.Fatalf("Could not listen to boiler...")
