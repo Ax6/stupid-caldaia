@@ -43,7 +43,9 @@ func ObserveState(ctx context.Context, boiler *model.Boiler) {
 		case <-ctx.Done():
 			return
 		default:
-			fmt.Println("State has changed, updating gpio...")
+			pin := rpio.Pin(boiler.Config.SwitchPin)
+			pin.Output()
+			fmt.Printf("State has changed, updating gpio... %d\n", boiler.Config.SwitchPin)
 			switch info.State {
 			case model.StateOn:
 				pin.High()
