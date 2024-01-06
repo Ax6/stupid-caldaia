@@ -65,7 +65,6 @@ func ObserveState(ctx context.Context, boiler *model.Boiler) {
 			updateIO(info)
 		}
 	}
-
 }
 
 func ObserveSensor(ctx context.Context, sensors map[string]*model.Sensor) {
