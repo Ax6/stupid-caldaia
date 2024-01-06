@@ -29,34 +29,45 @@ var (
 func ObserveState(ctx context.Context, boiler *model.Boiler) {
 	err := rpio.Open()
 	if err != nil {
-		log.Fatalf("Could not open pin...")
-	}
-	pin := rpio.Pin(boiler.Config.SwitchPin)
-	pin.Output()
-	listener, err := boiler.Listen(ctx)
-	if err != nil {
-		log.Fatalf("Could not listen to boiler...")
+		log.Panic("Could not open gpio... 😱")
 	}
 
+	updateIO := func(info *model.BoilerInfo) {
+		pin := rpio.Pin(boiler.Config.SwitchPin)
+		pin.Output()
+		fmt.Printf("State has changed 😮, updating gpio 👉 %d to %s\n", boiler.Config.SwitchPin, info.State)
+		switch info.State {
+		case model.StateOn:
+			pin.High()
+		case model.StateOff:
+			pin.Low()
+		default:
+			break
+		}
+	}
+
+	// Make sure we set I/O right from the start according to our state.
+	onStartInfo, err := boiler.GetInfo(ctx)
+	if err != nil {
+		log.Panic("Could not get intial boiler state 😱")
+	}
+	updateIO(onStartInfo)
+
+	listener, err := boiler.Listen(ctx)
+	if err != nil {
+		log.Panic("Could not listen to boiler... 🙉")
+	}
 	for info := range listener {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			pin := rpio.Pin(boiler.Config.SwitchPin)
-			pin.Output()
-			fmt.Printf("State has changed, updating gpio... %d\n", boiler.Config.SwitchPin)
-			switch info.State {
-			case model.StateOn:
-				pin.High()
-			case model.StateOff:
-				pin.Low()
-			default:
-				break
-			}
+			updateIO(info)
 		}
 	}
+
 	defer func() {
+		pin := rpio.Pin(boiler.Config.SwitchPin)
 		pin.Output()
 		pin.Low()
 		rpio.Close()
@@ -73,23 +84,23 @@ func ObserveSensor(ctx context.Context, sensors map[string]*model.Sensor) {
 			time.Sleep(1 * time.Second)
 			// Read sensors...
 			if _, err := host.Init(); err != nil {
-				log.Fatal(err)
+				log.Panic(err)
 			}
 
 			// Use i2creg I²C bus registry to find the first available I²C bus.
 			b, err := i2creg.Open("1")
 			if err != nil {
-				log.Fatalf("failed to open I²C: %v", err)
+				log.Panicf("failed to open I²C: %v", err)
 			}
 
 			htu21Device, err = htu21.NewI2C(b, 0x40)
 			if err != nil {
-				log.Fatalf("failed to initialize htu21: %v", err)
+				log.Panicf("failed to initialize htu21: %v", err)
 			}
 
 			// Measure
 			if err := htu21Device.Sense(&htu21Data); err != nil {
-				log.Fatal(err)
+				log.Panic(err)
 			}
 
 			// Add to database
@@ -111,7 +122,7 @@ func main() {
 	defer cancel()
 	config, err := store.LoadConfig()
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	wg.Add(2)
