@@ -145,24 +145,17 @@ func (c *Boiler) DeleteProgrammedInterval(ctx context.Context, id string) (bool,
 		return false, err
 	}
 
-	// Map programmed intervals to a map for easier lookup
-	lookupProgrammedIntervals := make(map[string]*ProgrammedInterval)
-	for _, interval := range info.ProgrammedIntervals {
-		lookupProgrammedIntervals[interval.ID] = interval
+	for index, programmedInterval := range info.ProgrammedIntervals {
+		err = fmt.Errorf("Could not find programmed interval with id: %s", id)
+		if programmedInterval.ID == id {
+			info.ProgrammedIntervals = append(info.ProgrammedIntervals[:index], info.ProgrammedIntervals[index+1:]...)
+			err = nil
+			break
+		}
 	}
-
-	if lookupProgrammedIntervals[id] == nil {
-		return false, fmt.Errorf("Specified ID not present in programmed intervals")
+	if err != nil {
+		return false, err
 	}
-
-	delete(lookupProgrammedIntervals, id)
-
-	// Convert back to a slice
-	programmedIntervals := make([]*ProgrammedInterval, 0, len(lookupProgrammedIntervals))
-	for _, interval := range lookupProgrammedIntervals {
-		programmedIntervals = append(programmedIntervals, interval)
-	}
-	info.ProgrammedIntervals = programmedIntervals
 
 	err = c.save(ctx, info)
 	return true, err
