@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -23,6 +24,7 @@ type Boiler struct {
 }
 
 func NewBoiler(ctx context.Context, client *redis.Client, config BoilerConfig) (*Boiler, error) {
+	fmt.Println("Ciao bello")
 	boiler := Boiler{Config: config, client: client}
 	_, err := boiler.GetInfo(ctx)
 	return &boiler, err
@@ -181,8 +183,9 @@ func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {
 }
 
 func (c *Boiler) GetInfo(ctx context.Context) (*BoilerInfo, error) {
-	data := c.client.Get(ctx, c.Config.Name).Val()
-	if data == "" {
+	data, err := c.client.Get(ctx, c.Config.Name).Result()
+	switch err {
+	case redis.Nil: // Data doesn't exist yet
 		defaultInfo := &BoilerInfo{
 			State:               StateUnknown,
 			MinTemp:             c.Config.DefaultMinTemperature,
@@ -191,10 +194,12 @@ func (c *Boiler) GetInfo(ctx context.Context) (*BoilerInfo, error) {
 		}
 		err := c.save(ctx, defaultInfo) // Save default values
 		return defaultInfo, err
-	} else {
+	case nil: // No error
 		var info BoilerInfo
 		err := json.Unmarshal([]byte(data), &info)
 		return &info, err
+	default:
+		return nil, err
 	}
 }
 
@@ -205,12 +210,12 @@ func (c *Boiler) save(ctx context.Context, info *BoilerInfo) error {
 		return err
 	}
 	storedData, err := c.client.Get(ctx, c.Config.Name).Result()
-	if err != nil {
-		return err
+	if err != nil && err != redis.Nil {
+		return fmt.Errorf("Cannot update database. Error when getting current state: %w", err)
 	}
 	diff := cmp.Diff(data, []byte(storedData))
 	if diff != "" {
-		fmt.Println(diff)
+		log.Println(diff)
 		err = c.client.Set(ctx, c.Config.Name, data, 0).Err()
 		if err != nil {
 			return err
