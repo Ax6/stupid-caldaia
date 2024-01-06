@@ -66,12 +66,6 @@ func ObserveState(ctx context.Context, boiler *model.Boiler) {
 		}
 	}
 
-	defer func() {
-		pin := rpio.Pin(boiler.Config.SwitchPin)
-		pin.Output()
-		pin.Low()
-		rpio.Close()
-	}()
 }
 
 func ObserveSensor(ctx context.Context, sensors map[string]*model.Sensor) {
@@ -138,5 +132,13 @@ func main() {
 		defer wg.Done()
 		ObserveState(ctx, boiler)
 	}()
+
+	defer func() {
+		pin := rpio.Pin(boiler.Config.SwitchPin)
+		pin.Output()
+		pin.Low()
+		rpio.Close()
+	}()
+
 	wg.Wait()
 }
