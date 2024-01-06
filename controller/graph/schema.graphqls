@@ -1,6 +1,4 @@
-# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
+# Boiler graphql schema
 
 type Subscription {
   boiler: BoilerInfo!
@@ -36,6 +34,12 @@ type ProgrammedInterval {
   duration: Duration!
   targetTemp: Float!
   repeatDays: [DayOfWeek!]!
+  stopped: StopStatus
+}
+
+type StopStatus {
+  status: Boolean!
+  stopTime: Time!
 }
 
 enum DayOfWeek {
@@ -70,5 +74,6 @@ type Mutation {
     targetTemp: Float!
     repeatDays: [DayOfWeek!]!
   ): ProgrammedInterval!
+  stopProgrammedInterval(id: ID!): Boolean!
   deleteProgrammedInterval(id: ID!): Boolean!
 }

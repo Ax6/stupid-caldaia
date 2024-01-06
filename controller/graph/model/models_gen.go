@@ -27,6 +27,12 @@ type ProgrammedInterval struct {
 	Duration   time.Duration `json:"duration"`
 	TargetTemp float64       `json:"targetTemp"`
 	RepeatDays []DayOfWeek   `json:"repeatDays"`
+	Stopped    *StopStatus   `json:"stopped,omitempty"`
+}
+
+type StopStatus struct {
+	Status   bool      `json:"status"`
+	StopTime time.Time `json:"stopTime"`
 }
 
 type DayOfWeek string

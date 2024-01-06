@@ -14,9 +14,7 @@ func ShouldHeat(programmedIntervals map[string]*model.ProgrammedInterval, refere
 		// Check if the programmed interval is active
 		projectedStartTime := time.Now().Add(-programmedInterval.Duration)
 		ruleIsActive := projectedStartTime.Before(programmedInterval.Start)
-		// print for debug
 		temperatureNotOk := referenceTemperature < programmedInterval.TargetTemp
-		// print for debug
 		shouldHeat := ruleIsActive && temperatureNotOk
 		if shouldHeat {
 			return true
