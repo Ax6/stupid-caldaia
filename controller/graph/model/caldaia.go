@@ -24,7 +24,6 @@ type Boiler struct {
 }
 
 func NewBoiler(ctx context.Context, client *redis.Client, config BoilerConfig) (*Boiler, error) {
-	fmt.Println("Ciao bello")
 	boiler := Boiler{Config: config, client: client}
 	_, err := boiler.GetInfo(ctx)
 	return &boiler, err
@@ -71,18 +70,6 @@ func (c *Boiler) SetMaxTemp(ctx context.Context, temp float64) (*float64, error)
 	return &info.MaxTemp, err
 }
 
-func (c *Boiler) GetProgrammedIntervals(ctx context.Context) (map[string]*ProgrammedInterval, error) {
-	info, err := c.GetInfo(ctx)
-	if err != nil {
-		return nil, err
-	}
-	programmedIntervals := make(map[string]*ProgrammedInterval)
-	for _, interval := range info.ProgrammedIntervals {
-		programmedIntervals[interval.ID] = interval
-	}
-	return programmedIntervals, nil
-}
-
 func (c *Boiler) SetProgrammedInterval(ctx context.Context, opt *ProgrammedInterval) (*ProgrammedInterval, error) {
 	info, err := c.GetInfo(ctx)
 	if err != nil {
@@ -93,9 +80,9 @@ func (c *Boiler) SetProgrammedInterval(ctx context.Context, opt *ProgrammedInter
 	}
 
 	// Map programmed intervals to a map for easier lookup
-	lookupProgrammedIntervals, err := c.GetProgrammedIntervals(ctx)
-	if err != nil {
-		return nil, err
+	lookupProgrammedIntervals := make(map[string]*ProgrammedInterval)
+	for _, interval := range info.ProgrammedIntervals {
+		lookupProgrammedIntervals[interval.ID] = interval
 	}
 
 	// If ID is present in the opt, use that, otherwise generate a new one
@@ -161,6 +148,36 @@ func (c *Boiler) DeleteProgrammedInterval(ctx context.Context, id string) (bool,
 
 	err = c.save(ctx, info)
 	return true, err
+}
+
+func (c *Boiler) ListenProgrammedIntervals(ctx context.Context) (<-chan []*ProgrammedInterval, error) {
+	programmedIntervalUpdates := make(chan []*ProgrammedInterval)
+	boilerInfo, err := c.GetInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	currentRules, err := json.Marshal(boilerInfo.ProgrammedIntervals)
+	if err != nil {
+		return nil, err
+	}
+	boilerListener, err := c.Listen(ctx)
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		for boilerInfo := range boilerListener {
+			newRules, err := json.Marshal(boilerInfo.ProgrammedIntervals)
+			if err != nil {
+				fmt.Println(fmt.Errorf("Error marshalling programmed intervals: %w", err))
+				continue
+			}
+			if !cmp.Equal(currentRules, newRules) {
+				programmedIntervalUpdates <- boilerInfo.ProgrammedIntervals
+			}
+			currentRules = newRules
+		}
+	}()
+	return programmedIntervalUpdates, nil
 }
 
 func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {

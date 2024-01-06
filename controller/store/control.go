@@ -2,14 +2,12 @@ package store
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"stupid-caldaia/controller/graph/model"
 	"time"
-
-	"github.com/google/go-cmp/cmp"
 )
 
-func ShouldHeat(programmedIntervals map[string]*model.ProgrammedInterval, referenceTemperature float64) bool {
+func ShouldHeat(programmedIntervals []*model.ProgrammedInterval, referenceTemperature float64) bool {
 	for _, programmedInterval := range programmedIntervals {
 		// Check if the programmed interval is active
 		projectedStartTime := time.Now().Add(-programmedInterval.Duration)
@@ -37,11 +35,11 @@ func TemperatureChangeController(ctx context.Context, boiler *model.Boiler, temp
 		if averageTemperature != nil {
 			currentTemperature = *averageTemperature
 		}
-		programmedIntervals, err := boiler.GetProgrammedIntervals(ctx)
+		boilerInfo, err := boiler.GetInfo(ctx)
 		if err != nil {
 			panic(err)
 		}
-		if ShouldHeat(programmedIntervals, currentTemperature) {
+		if ShouldHeat(boilerInfo.ProgrammedIntervals, currentTemperature) {
 			boiler.Switch(ctx, model.StateOn)
 		} else {
 			boiler.Switch(ctx, model.StateOff)
@@ -49,48 +47,33 @@ func TemperatureChangeController(ctx context.Context, boiler *model.Boiler, temp
 	}
 }
 
-func RuleChangeController(ctx context.Context, boiler *model.Boiler, temperatureSensor *model.Sensor) {
-	boilerListener, err := boiler.Listen(ctx)
-	if err != nil {
-		panic(err)
-	}
-	boilerInfo, err := boiler.GetInfo(ctx)
-	if err != nil {
-		panic(err)
-	}
+func RuleTimeoutController(ctx context.Context, boiler *model.Boiler) {
+	return
+}
 
-	currentRules, err := json.Marshal(boilerInfo.ProgrammedIntervals)
+func RuleEnforceController(ctx context.Context, boiler *model.Boiler, temperatureSensor *model.Sensor) {
+	programmedIntervalsListener, err := boiler.ListenProgrammedIntervals(ctx)
 	if err != nil {
 		panic(err)
 	}
-
-	for boilerInfo := range boilerListener {
-		newRules, err := json.Marshal(boilerInfo.ProgrammedIntervals)
+	for programmedIntervals := range programmedIntervalsListener {
+		averageTemperature, err := temperatureSensor.GetAverage(ctx, time.Now().Add(-20*time.Minute), time.Now())
 		if err != nil {
 			panic(err)
 		}
-		if !cmp.Equal(currentRules, newRules) {
-			averageTemperature, err := temperatureSensor.GetAverage(ctx, time.Now().Add(-20*time.Minute), time.Now())
+		referenceTemperature := *averageTemperature
+		if averageTemperature == nil {
+			boilerInfo, err := boiler.GetInfo(ctx)
 			if err != nil {
-				panic(err)
+				fmt.Println(fmt.Errorf("Could not get Boiler info to set default reference temperature: %w", err))
 			}
-			programmedIntervals, err := boiler.GetProgrammedIntervals(ctx)
-			if err != nil {
-				panic(err)
-			}
-
-			// If no average is present we set to max temp to avoid turning on the boiler
-			referenceTemperature := boilerInfo.MaxTemp
-			if averageTemperature != nil {
-				referenceTemperature = *averageTemperature
-			}
-
-			if ShouldHeat(programmedIntervals, referenceTemperature) {
-				boiler.Switch(ctx, model.StateOn)
-			} else {
-				boiler.Switch(ctx, model.StateOff)
-			}
+			referenceTemperature = boilerInfo.MaxTemp
 		}
-		currentRules = newRules
+
+		if ShouldHeat(programmedIntervals, referenceTemperature) {
+			boiler.Switch(ctx, model.StateOn)
+		} else {
+			boiler.Switch(ctx, model.StateOff)
+		}
 	}
 }

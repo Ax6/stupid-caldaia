@@ -104,7 +104,7 @@ func TestSetAndDeleteProgrammedInterval(t *testing.T) {
 		t.Fatal("Souldn't be able to set target temperature above limit")
 	}
 
-	programmedInterval, err := boiler.SetProgrammedInterval(ctx, &model.ProgrammedInterval{
+	programmedIntervalUnderTest, err := boiler.SetProgrammedInterval(ctx, &model.ProgrammedInterval{
 		Start:      time.Now(),
 		Duration:   time.Second,
 		TargetTemp: MAX_TEMP,
@@ -113,23 +113,17 @@ func TestSetAndDeleteProgrammedInterval(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	programmedIntervals, err := boiler.GetProgrammedIntervals(ctx)
+	boilerInfo, _ := boiler.GetInfo(ctx)
+	if len(boilerInfo.ProgrammedIntervals) != 1 || boilerInfo.ProgrammedIntervals[0].ID != programmedIntervalUnderTest.ID {
+		t.Fatal("Programmed interval was not added correctly")
+	}
+
+	_, err = boiler.DeleteProgrammedInterval(ctx, programmedIntervalUnderTest.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, ok := programmedIntervals[programmedInterval.ID]
-	if !ok {
-		t.Fatal("Programmed interval was not created")
-	}
-
-	_, err = boiler.DeleteProgrammedInterval(ctx, programmedInterval.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	programmedIntervals, err = boiler.GetProgrammedIntervals(ctx)
-	_, ok = programmedIntervals[programmedInterval.ID]
-	if ok {
-		t.Fatal("Did not delete programmed interval")
+	boilerInfo, _ = boiler.GetInfo(ctx)
+	if len(boilerInfo.ProgrammedIntervals) != 0 {
+		t.Fatal("Programmed interval was note deleted")
 	}
 }
