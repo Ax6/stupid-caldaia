@@ -12,17 +12,16 @@ import (
 	"golang.org/x/net/context"
 )
 
-func TestRuleTimingController(t *testing.T) {
-	LAG_FACTOR := 1000 // Time in Ms
-	SMALL_TIME := time.Duration(LAG_FACTOR/10) * time.Millisecond
-	HALF_TIME := time.Duration(LAG_FACTOR/2) * time.Millisecond
-	FULL_TIME := time.Duration(LAG_FACTOR) * time.Millisecond
+var (
+	LAG_FACTOR = 100 // Time in Ms
+	SMALL_TIME = time.Duration(LAG_FACTOR/10) * time.Millisecond
+	HALF_TIME  = time.Duration(LAG_FACTOR/2) * time.Millisecond
+	FULL_TIME  = time.Duration(LAG_FACTOR) * time.Millisecond
+)
 
+func TestRuleTimingController(t *testing.T) {
 	ctx := context.Background()
-	testBoiler, err := internal.CreateTestBoiler(t, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testBoiler, _ := internal.CreateTestBoiler(t, ctx)
 
 	go store.RuleTimingController(ctx, testBoiler)
 	time.Sleep(SMALL_TIME)
@@ -64,5 +63,49 @@ func TestRuleTimingController(t *testing.T) {
 	}
 	if programmedInterval.IsActive {
 		t.Fatal("Set programmed interval: expecting IsActive false but it's not")
+	}
+}
+
+func TestRuleTimingControllerEdgeCases(t *testing.T) {
+	ctx := context.Background()
+	testBoiler, _ := internal.CreateTestBoiler(t, ctx)
+
+	programmedInterval, err := testBoiler.SetProgrammedInterval(ctx, &model.ProgrammedInterval{
+		Start:      time.Now(),
+		Duration:   FULL_TIME,
+		TargetTemp: internal.MAX_TEMP - 1,
+	})
+	if err != nil {
+		t.Fatal(fmt.Errorf("Could not create programmed interval %w", err))
+	} else {
+		fmt.Printf("Added %s\n", programmedInterval)
+	}
+
+	time.Sleep(SMALL_TIME)
+	go store.RuleTimingController(ctx, testBoiler)
+	time.Sleep(SMALL_TIME)
+
+	info, _ := testBoiler.GetInfo(ctx)
+	programmedInterval = info.ProgrammedIntervals[0]
+	if !programmedInterval.ShouldBeActive() {
+		t.Fatal("Set programmed interval: expecting ShouldBeActive true but it's not")
+	}
+	if !programmedInterval.IsActive {
+		t.Fatal("Set programmed interval: expecting IsActive true but it's not")
+	}
+
+	testBoiler.StopProgrammedInterval(ctx, programmedInterval.ID)
+	time.Sleep(SMALL_TIME)
+
+	info, _ = testBoiler.GetInfo(ctx)
+	programmedInterval = info.ProgrammedIntervals[0]
+	if programmedInterval.ShouldBeActive() {
+		t.Fatal("Set programmed interval: expecting ShouldBeActive false but it's not")
+	}
+	if programmedInterval.IsActive {
+		t.Fatal("Set programmed interval: expecting IsActive false but it's not")
+	}
+	if !programmedInterval.ShouldBeStopped() {
+		t.Fatal("Set programmed interval: expecting ShouldBeStopped true but it's not")
 	}
 }

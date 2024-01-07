@@ -2,6 +2,8 @@ package internal
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"stupid-caldaia/controller/graph/model"
 	"testing"
 
@@ -20,7 +22,7 @@ func CreateTestBoiler(t *testing.T, ctx context.Context) (*model.Boiler, error) 
 		Addr: server.Addr(),
 	})
 	boiler, err := model.NewBoiler(ctx, client, model.BoilerConfig{
-		Name:                  "test",
+		Name:                  fmt.Sprintf("test_boiler_%d", rand.Int()),
 		DefaultMinTemperature: MIN_TEMP,
 		DefaultMaxTemperature: MAX_TEMP,
 		SwitchPin:             1,
