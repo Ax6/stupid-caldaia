@@ -10,6 +10,7 @@ require (
 	github.com/redis/go-redis/v9 v9.3.1
 	github.com/rs/cors v1.10.1
 	github.com/vektah/gqlparser/v2 v2.5.10
+	golang.org/x/net v0.17.0
 )
 
 require (

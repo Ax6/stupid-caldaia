@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -205,6 +204,7 @@ func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {
 	boilerUpdates := make(chan *BoilerInfo)
 	go func() {
 		sub := c.client.Subscribe(ctx, c.Config.Name)
+		defer sub.Close()
 		for msg := range sub.Channel() {
 			boiler := BoilerInfo{}
 			err := json.Unmarshal([]byte(msg.Payload), &boiler)
@@ -253,7 +253,6 @@ func (c *Boiler) save(ctx context.Context, info *BoilerInfo) error {
 	}
 	diff := cmp.Diff(data, []byte(storedData))
 	if diff != "" {
-		log.Println(diff)
 		err = c.client.Set(ctx, c.Config.Name, data, 0).Err()
 		if err != nil {
 			return err

@@ -3,38 +3,14 @@ package model_test
 import (
 	"context"
 	"stupid-caldaia/controller/graph/model"
+	"stupid-caldaia/controller/internal"
 	"testing"
 	"time"
-
-	"github.com/alicebob/miniredis/v2"
-	"github.com/redis/go-redis/v9"
 )
-
-const (
-	MIN_TEMP = 10
-	MAX_TEMP = 20
-)
-
-func createTestBoiler(t *testing.T, ctx context.Context) (*model.Boiler, error) {
-	server := miniredis.RunT(t)
-	client := redis.NewClient(&redis.Options{
-		Addr: server.Addr(),
-	})
-	boiler, err := model.NewBoiler(ctx, client, model.BoilerConfig{
-		Name:                  "test",
-		DefaultMinTemperature: MIN_TEMP,
-		DefaultMaxTemperature: MAX_TEMP,
-		SwitchPin:             1,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return boiler, nil
-}
 
 func TestSetSwitchOn(t *testing.T) {
 	ctx := context.Background()
-	testBoiler, err := createTestBoiler(t, ctx)
+	testBoiler, err := internal.CreateTestBoiler(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,35 +29,35 @@ func TestSetSwitchOn(t *testing.T) {
 
 func TestSetMinTemp(t *testing.T) {
 	ctx := context.Background()
-	testBoiler, err := createTestBoiler(t, ctx)
+	testBoiler, err := internal.CreateTestBoiler(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	t.Run("Set min temp ok", func(t *testing.T) {
 		t.Parallel()
-		_, err = testBoiler.SetMinTemp(ctx, MIN_TEMP+1)
+		_, err = testBoiler.SetMinTemp(ctx, internal.MIN_TEMP+1)
 		if err != nil {
 			t.Fatal("Could not set min temp")
 		}
 	})
 	t.Run("Set min temp not ok", func(t *testing.T) {
 		t.Parallel()
-		_, err = testBoiler.SetMinTemp(ctx, MAX_TEMP+1)
+		_, err = testBoiler.SetMinTemp(ctx, internal.MAX_TEMP+1)
 		if err == nil {
 			t.Fatal("Shouldn't be able to set temp > MAX_TEMP")
 		}
 	})
 	t.Run("Set max temp ok", func(t *testing.T) {
 		t.Parallel()
-		_, err = testBoiler.SetMaxTemp(ctx, MAX_TEMP-1)
+		_, err = testBoiler.SetMaxTemp(ctx, internal.MAX_TEMP-1)
 		if err != nil {
 			t.Fatal("Could not set  max temp")
 		}
 	})
 	t.Run("Set max temp not ok", func(t *testing.T) {
 		t.Parallel()
-		_, err = testBoiler.SetMaxTemp(ctx, MIN_TEMP-1)
+		_, err = testBoiler.SetMaxTemp(ctx, internal.MIN_TEMP-1)
 		if err == nil {
 			t.Fatal("Should not be able to set temp")
 		}
@@ -90,7 +66,7 @@ func TestSetMinTemp(t *testing.T) {
 
 func TestSetAndDeleteProgrammedInterval(t *testing.T) {
 	ctx := context.Background()
-	boiler, err := createTestBoiler(t, ctx)
+	boiler, err := internal.CreateTestBoiler(t, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +74,7 @@ func TestSetAndDeleteProgrammedInterval(t *testing.T) {
 	_, err = boiler.SetProgrammedInterval(ctx, &model.ProgrammedInterval{
 		Start:      time.Now(),
 		Duration:   time.Second,
-		TargetTemp: MAX_TEMP + 1,
+		TargetTemp: internal.MAX_TEMP + 1,
 	})
 	if err == nil {
 		t.Fatal("Souldn't be able to set target temperature above limit")
@@ -107,7 +83,7 @@ func TestSetAndDeleteProgrammedInterval(t *testing.T) {
 	programmedIntervalUnderTest, err := boiler.SetProgrammedInterval(ctx, &model.ProgrammedInterval{
 		Start:      time.Now(),
 		Duration:   time.Second,
-		TargetTemp: MAX_TEMP,
+		TargetTemp: internal.MAX_TEMP,
 	})
 	if err != nil {
 		t.Fatal(err)

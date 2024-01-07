@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -55,7 +56,7 @@ func (p *ProgrammedInterval) WindowStartTime() time.Time {
 	return upcomingStart
 }
 
-func (p *ProgrammedInterval) WindowStopTimeout(ctx context.Context, alert chan *ProgrammedInterval) {
+func (p *ProgrammedInterval) WindowStopTimeout(ctx context.Context, alert chan<- *ProgrammedInterval) {
 	select {
 	case <-ctx.Done():
 		return // Timeout was cancelled
@@ -65,11 +66,15 @@ func (p *ProgrammedInterval) WindowStopTimeout(ctx context.Context, alert chan *
 	}
 }
 
-func (p *ProgrammedInterval) WindowStartTimeout(ctx context.Context, alert chan *ProgrammedInterval) {
+func (p *ProgrammedInterval) WindowStartTimeout(ctx context.Context, alert chan<- *ProgrammedInterval) {
+	now := time.Now()
+	fmt.Printf("⏰ Set start timeout for programmed interval %s. Requested start in %s\n", p.ID, p.WindowStartTime().Sub(time.Now()))
 	select {
 	case <-ctx.Done():
+		fmt.Printf("Context shut itself 😱 after %s\n", time.Now().Sub(now))
 		return // Timeout was cancelled
 	case <-time.After(p.WindowStartTime().Sub(time.Now())):
+		fmt.Printf("😇 Alerting start! (After %s)\n", time.Now().Sub(now))
 		alert <- p
 		return
 	}
