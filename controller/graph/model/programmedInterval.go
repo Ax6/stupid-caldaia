@@ -9,57 +9,67 @@ type DayOfWeek = time.Weekday
 
 // It should be active if now it's in the current time window and we shouldn't stop
 func (p *ProgrammedInterval) ShouldBeActive() bool {
-	wStart := p.CurrentWindowStart()
-	if wStart.IsZero() {
-		return false
-	}
-	now := time.Now()
+	wStart := p.WindowStartTime()
 	wEnd := wStart.Add(p.Duration)
+	now := time.Now()
 	return now.After(wStart) && now.Before(wEnd) && !p.ShouldBeStopped()
 }
 
-// It should stop if the stop command was sent in the current window
+// It should stop if the stop command was sent in the current or upcoming window and we are past that time
 func (p *ProgrammedInterval) ShouldBeStopped() bool {
-	wStart := p.CurrentWindowStart()
 	sTime := p.StoppedTime
-	if wStart.IsZero() || sTime.IsZero() {
+	if sTime.IsZero() {
 		return false
 	}
+	wStart := p.WindowStartTime()
 	wEnd := wStart.Add(p.Duration)
-	return sTime.After(wStart) && sTime.Before(wEnd)
+	return sTime.Before(time.Now()) && sTime.After(wStart) && sTime.Before(wEnd)
 }
 
-func (p *ProgrammedInterval) CurrentWindowStart() time.Time {
-	now := time.Now()
+// If we are in a window returns the start time of this window, otherwise returns the start of the upcoming window
+func (p *ProgrammedInterval) WindowStartTime() time.Time {
 	if len(p.RepeatDays) == 0 {
 		return p.Start
 	}
 
+	now := time.Now()
 	daysUntilTarget := 7
+	todaysStart := time.Date(now.Year(), now.Month(), now.Day(), p.Start.Hour(), p.Start.Minute(), p.Start.Second(), 0, p.Start.Location())
+
 	for _, programmedWeekDay := range p.RepeatDays {
 		// Calculate the difference in days between the current day and the target day
 		daysAway := (programmedWeekDay - int(now.Weekday()) + 7) % 7
+
+		if daysAway == 0 {
+			// If we are 0 days away we have to check if the repeated rule has finished already, in that case we are a week away
+			if todaysStart.Add(p.Duration).Before(now) {
+				daysAway = 7
+			}
+		}
 		if daysAway < daysUntilTarget {
 			daysUntilTarget = daysAway
 		}
 	}
 
-	currentWeekDay := now.Weekday()
-	for _, programmedWeekDay := range p.RepeatDays {
-		if currentWeekDay == time.Weekday(programmedWeekDay) {
-			// We have to check if the repeated rule applies at this time of day
-			todaysStart := time.Date(now.Year(), now.Month(), now.Day(), p.Start.Hour(), p.Start.Minute(), p.Start.Second(), 0, now.Location())
-			return todaysStart
-		}
-	}
-	return time.Time{}
+	upcomingStart := todaysStart.Add(time.Duration(daysUntilTarget) * time.Hour * 24)
+	return upcomingStart
 }
 
-func (p *ProgrammedInterval) WindowTimeout(ctx context.Context, alert chan *ProgrammedInterval) {
+func (p *ProgrammedInterval) WindowStopTimeout(ctx context.Context, alert chan *ProgrammedInterval) {
 	select {
 	case <-ctx.Done():
 		return // Timeout was cancelled
-	case <-time.After(p.Start.Sub(time.Now()) + p.Duration):
+	case <-time.After(p.WindowStartTime().Sub(time.Now()) + p.Duration):
+		alert <- p
+		return
+	}
+}
+
+func (p *ProgrammedInterval) WindowStartTimeout(ctx context.Context, alert chan *ProgrammedInterval) {
+	select {
+	case <-ctx.Done():
+		return // Timeout was cancelled
+	case <-time.After(p.WindowStartTime().Sub(time.Now())):
 		alert <- p
 		return
 	}

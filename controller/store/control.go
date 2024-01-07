@@ -51,37 +51,53 @@ func RuleTimingController(ctx context.Context, boiler *model.Boiler) {
 		panic(err)
 	}
 
-	alertTimeout := make(chan *model.ProgrammedInterval)
+	alertTimeoutStop := make(chan *model.ProgrammedInterval)
+	alertTimeoutStart := make(chan *model.ProgrammedInterval)
 	cancelContext, cancelTimeouts := context.WithCancel(ctx)
 	defer cancelTimeouts()
 	for _, programmedInterval := range info.ProgrammedIntervals {
 		if programmedInterval.ShouldBeActive() {
-			go programmedInterval.WindowTimeout(cancelContext, alertTimeout)
+			go programmedInterval.WindowStopTimeout(cancelContext, alertTimeoutStop)
+		} else if !programmedInterval.ShouldBeStopped() {
+			// If it shouldn't be active program the next start timeout.
+			// However, if ShouldBeStopped is true, the timeout would refer to a window started in the past
+			go programmedInterval.WindowStartTimeout(cancelContext, alertTimeoutStart)
 		}
 	}
 	programmedIntervalsListener, err := boiler.ListenProgrammedIntervals(ctx)
 	if err != nil {
 		panic(err)
 	}
-	go func() {
-		for programmedInterval := range alertTimeout {
+	go func() { // Rules orchestration
+		select {
+		case programmedInterval := <-alertTimeoutStart:
+			// Start requested programmed interval and trigger state update
+			err := boiler.StartProgrammedInterval(ctx, programmedInterval.ID)
+			if err != nil {
+				fmt.Println(fmt.Errorf("Could not start rule %s after timeout: %w", programmedInterval.ID, err))
+			} else {
+				fmt.Printf("🟢 Started programmed interval %s\n", programmedInterval.ID)
+			}
+		case programmedInterval := <-alertTimeoutStop:
+			// Stop programmed interval and trigger state update
 			err := boiler.StopProgrammedInterval(ctx, programmedInterval.ID)
 			if err != nil {
 				fmt.Println(fmt.Errorf("Could not stop rule %s after timeout: %w", programmedInterval.ID, err))
 			} else {
 				fmt.Printf("🛑 Timeout for programmed interval %s\n", programmedInterval.ID)
 			}
-		}
-	}()
-	go func() {
-		for programmedIntervals := range programmedIntervalsListener {
+		case programmedIntervals := <-programmedIntervalsListener:
+			// Listen to state updates (change of rules, stops and starts)
 			cancelTimeouts()
 			cancelContext, cancelTimeouts = context.WithCancel(ctx)
 			defer cancelTimeouts()
 			for _, programmedInterval := range programmedIntervals {
 				if programmedInterval.ShouldBeActive() {
-					boiler.StartProgrammedInterval(ctx, programmedInterval.ID)
-					go programmedInterval.WindowTimeout(cancelContext, alertTimeout)
+					go programmedInterval.WindowStopTimeout(cancelContext, alertTimeoutStop)
+				} else if !programmedInterval.ShouldBeStopped() {
+					// If it shouldn't be active program the next start timeout.
+					// However, if ShouldBeStopped is true, the timeout would refer to a window started in the past
+					go programmedInterval.WindowStartTimeout(cancelContext, alertTimeoutStart)
 				}
 			}
 		}
