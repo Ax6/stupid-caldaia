@@ -37,7 +37,7 @@ func (r *mutationResolver) UpdateBoiler(ctx context.Context, state *model.State,
 }
 
 // SetProgrammedInterval is the resolver for the setProgrammedInterval field.
-func (r *mutationResolver) SetProgrammedInterval(ctx context.Context, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []model.DayOfWeek) (*model.ProgrammedInterval, error) {
+func (r *mutationResolver) SetProgrammedInterval(ctx context.Context, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []int) (*model.ProgrammedInterval, error) {
 	opt := &model.ProgrammedInterval{
 		ID:         *id,
 		Start:      start,
@@ -50,12 +50,14 @@ func (r *mutationResolver) SetProgrammedInterval(ctx context.Context, id *string
 
 // StopProgrammedInterval is the resolver for the stopProgrammedInterval field.
 func (r *mutationResolver) StopProgrammedInterval(ctx context.Context, id string) (bool, error) {
-	return r.Resolver.Boiler.StopProgrammedInterval(ctx, id)
+	err := r.Resolver.Boiler.StopProgrammedInterval(ctx, id)
+	return err != nil, err
 }
 
 // DeleteProgrammedInterval is the resolver for the deleteProgrammedInterval field.
 func (r *mutationResolver) DeleteProgrammedInterval(ctx context.Context, id string) (bool, error) {
-	return r.Resolver.Boiler.DeleteProgrammedInterval(ctx, id)
+	err := r.Resolver.Boiler.DeleteProgrammedInterval(ctx, id)
+	return err != nil, err
 }
 
 // Boiler is the resolver for the boiler field.

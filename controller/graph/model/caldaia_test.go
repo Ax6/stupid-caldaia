@@ -118,7 +118,7 @@ func TestSetAndDeleteProgrammedInterval(t *testing.T) {
 		t.Fatal("Programmed interval was not added correctly")
 	}
 
-	_, err = boiler.DeleteProgrammedInterval(ctx, programmedIntervalUnderTest.ID)
+	err = boiler.DeleteProgrammedInterval(ctx, programmedIntervalUnderTest.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

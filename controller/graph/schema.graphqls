@@ -33,23 +33,9 @@ type ProgrammedInterval {
   start: Time!
   duration: Duration!
   targetTemp: Float!
-  repeatDays: [DayOfWeek!]!
-  stopped: StopStatus
-}
-
-type StopStatus {
-  status: Boolean!
-  stopTime: Time!
-}
-
-enum DayOfWeek {
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
-  SATURDAY
-  SUNDAY
+  repeatDays: [Int!]!
+  isActive: Boolean!
+  stoppedTime: Time!
 }
 
 enum State {
@@ -72,7 +58,7 @@ type Mutation {
     start: Time!
     duration: Duration!
     targetTemp: Float!
-    repeatDays: [DayOfWeek!]!
+    repeatDays: [Int!]!
   ): ProgrammedInterval!
   stopProgrammedInterval(id: ID!): Boolean!
   deleteProgrammedInterval(id: ID!): Boolean!

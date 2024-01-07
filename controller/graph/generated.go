@@ -64,29 +64,25 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		DeleteProgrammedInterval func(childComplexity int, id string) int
-		SetProgrammedInterval    func(childComplexity int, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []model.DayOfWeek) int
+		SetProgrammedInterval    func(childComplexity int, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []int) int
 		StopProgrammedInterval   func(childComplexity int, id string) int
 		UpdateBoiler             func(childComplexity int, state *model.State, minTemp *float64, maxTemp *float64) int
 	}
 
 	ProgrammedInterval struct {
-		Duration   func(childComplexity int) int
-		ID         func(childComplexity int) int
-		RepeatDays func(childComplexity int) int
-		Start      func(childComplexity int) int
-		Stopped    func(childComplexity int) int
-		TargetTemp func(childComplexity int) int
+		Duration    func(childComplexity int) int
+		ID          func(childComplexity int) int
+		IsActive    func(childComplexity int) int
+		RepeatDays  func(childComplexity int) int
+		Start       func(childComplexity int) int
+		StoppedTime func(childComplexity int) int
+		TargetTemp  func(childComplexity int) int
 	}
 
 	Query struct {
 		Boiler      func(childComplexity int) int
 		Sensor      func(childComplexity int, name string, position string) int
 		SensorRange func(childComplexity int, name string, position string, from *time.Time, to *time.Time) int
-	}
-
-	StopStatus struct {
-		Status   func(childComplexity int) int
-		StopTime func(childComplexity int) int
 	}
 
 	Subscription struct {
@@ -97,7 +93,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	UpdateBoiler(ctx context.Context, state *model.State, minTemp *float64, maxTemp *float64) (*model.BoilerInfo, error)
-	SetProgrammedInterval(ctx context.Context, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []model.DayOfWeek) (*model.ProgrammedInterval, error)
+	SetProgrammedInterval(ctx context.Context, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []int) (*model.ProgrammedInterval, error)
 	StopProgrammedInterval(ctx context.Context, id string) (bool, error)
 	DeleteProgrammedInterval(ctx context.Context, id string) (bool, error)
 }
@@ -194,7 +190,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.SetProgrammedInterval(childComplexity, args["id"].(*string), args["start"].(time.Time), args["duration"].(time.Duration), args["targetTemp"].(float64), args["repeatDays"].([]model.DayOfWeek)), true
+		return e.complexity.Mutation.SetProgrammedInterval(childComplexity, args["id"].(*string), args["start"].(time.Time), args["duration"].(time.Duration), args["targetTemp"].(float64), args["repeatDays"].([]int)), true
 
 	case "Mutation.stopProgrammedInterval":
 		if e.complexity.Mutation.StopProgrammedInterval == nil {
@@ -234,6 +230,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ProgrammedInterval.ID(childComplexity), true
 
+	case "ProgrammedInterval.isActive":
+		if e.complexity.ProgrammedInterval.IsActive == nil {
+			break
+		}
+
+		return e.complexity.ProgrammedInterval.IsActive(childComplexity), true
+
 	case "ProgrammedInterval.repeatDays":
 		if e.complexity.ProgrammedInterval.RepeatDays == nil {
 			break
@@ -248,12 +251,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ProgrammedInterval.Start(childComplexity), true
 
-	case "ProgrammedInterval.stopped":
-		if e.complexity.ProgrammedInterval.Stopped == nil {
+	case "ProgrammedInterval.stoppedTime":
+		if e.complexity.ProgrammedInterval.StoppedTime == nil {
 			break
 		}
 
-		return e.complexity.ProgrammedInterval.Stopped(childComplexity), true
+		return e.complexity.ProgrammedInterval.StoppedTime(childComplexity), true
 
 	case "ProgrammedInterval.targetTemp":
 		if e.complexity.ProgrammedInterval.TargetTemp == nil {
@@ -292,20 +295,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.SensorRange(childComplexity, args["name"].(string), args["position"].(string), args["from"].(*time.Time), args["to"].(*time.Time)), true
-
-	case "StopStatus.status":
-		if e.complexity.StopStatus.Status == nil {
-			break
-		}
-
-		return e.complexity.StopStatus.Status(childComplexity), true
-
-	case "StopStatus.stopTime":
-		if e.complexity.StopStatus.StopTime == nil {
-			break
-		}
-
-		return e.complexity.StopStatus.StopTime(childComplexity), true
 
 	case "Subscription.boiler":
 		if e.complexity.Subscription.Boiler == nil {
@@ -520,10 +509,10 @@ func (ec *executionContext) field_Mutation_setProgrammedInterval_args(ctx contex
 		}
 	}
 	args["targetTemp"] = arg3
-	var arg4 []model.DayOfWeek
+	var arg4 []int
 	if tmp, ok := rawArgs["repeatDays"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repeatDays"))
-		arg4, err = ec.unmarshalNDayOfWeek2ᚕstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeekᚄ(ctx, tmp)
+		arg4, err = ec.unmarshalNInt2ᚕintᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -904,8 +893,10 @@ func (ec *executionContext) fieldContext_BoilerInfo_programmedIntervals(ctx cont
 				return ec.fieldContext_ProgrammedInterval_targetTemp(ctx, field)
 			case "repeatDays":
 				return ec.fieldContext_ProgrammedInterval_repeatDays(ctx, field)
-			case "stopped":
-				return ec.fieldContext_ProgrammedInterval_stopped(ctx, field)
+			case "isActive":
+				return ec.fieldContext_ProgrammedInterval_isActive(ctx, field)
+			case "stoppedTime":
+				return ec.fieldContext_ProgrammedInterval_stoppedTime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ProgrammedInterval", field.Name)
 		},
@@ -1080,7 +1071,7 @@ func (ec *executionContext) _Mutation_setProgrammedInterval(ctx context.Context,
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().SetProgrammedInterval(rctx, fc.Args["id"].(*string), fc.Args["start"].(time.Time), fc.Args["duration"].(time.Duration), fc.Args["targetTemp"].(float64), fc.Args["repeatDays"].([]model.DayOfWeek))
+		return ec.resolvers.Mutation().SetProgrammedInterval(rctx, fc.Args["id"].(*string), fc.Args["start"].(time.Time), fc.Args["duration"].(time.Duration), fc.Args["targetTemp"].(float64), fc.Args["repeatDays"].([]int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1115,8 +1106,10 @@ func (ec *executionContext) fieldContext_Mutation_setProgrammedInterval(ctx cont
 				return ec.fieldContext_ProgrammedInterval_targetTemp(ctx, field)
 			case "repeatDays":
 				return ec.fieldContext_ProgrammedInterval_repeatDays(ctx, field)
-			case "stopped":
-				return ec.fieldContext_ProgrammedInterval_stopped(ctx, field)
+			case "isActive":
+				return ec.fieldContext_ProgrammedInterval_isActive(ctx, field)
+			case "stoppedTime":
+				return ec.fieldContext_ProgrammedInterval_stoppedTime(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ProgrammedInterval", field.Name)
 		},
@@ -1447,9 +1440,9 @@ func (ec *executionContext) _ProgrammedInterval_repeatDays(ctx context.Context, 
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]model.DayOfWeek)
+	res := resTmp.([]int)
 	fc.Result = res
-	return ec.marshalNDayOfWeek2ᚕstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeekᚄ(ctx, field.Selections, res)
+	return ec.marshalNInt2ᚕintᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ProgrammedInterval_repeatDays(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1459,14 +1452,14 @@ func (ec *executionContext) fieldContext_ProgrammedInterval_repeatDays(ctx conte
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DayOfWeek does not have child fields")
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _ProgrammedInterval_stopped(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProgrammedInterval_stopped(ctx, field)
+func (ec *executionContext) _ProgrammedInterval_isActive(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProgrammedInterval_isActive(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1479,34 +1472,75 @@ func (ec *executionContext) _ProgrammedInterval_stopped(ctx context.Context, fie
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Stopped, nil
+		return obj.IsActive, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.StopStatus)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalOStopStatus2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐStopStatus(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_ProgrammedInterval_stopped(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ProgrammedInterval_isActive(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ProgrammedInterval",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "status":
-				return ec.fieldContext_StopStatus_status(ctx, field)
-			case "stopTime":
-				return ec.fieldContext_StopStatus_stopTime(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type StopStatus", field.Name)
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProgrammedInterval_stoppedTime(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProgrammedInterval_stoppedTime(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StoppedTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProgrammedInterval_stoppedTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProgrammedInterval",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1809,94 +1843,6 @@ func (ec *executionContext) fieldContext_Query___schema(ctx context.Context, fie
 				return ec.fieldContext___Schema_directives(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Schema", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _StopStatus_status(ctx context.Context, field graphql.CollectedField, obj *model.StopStatus) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_StopStatus_status(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Status, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_StopStatus_status(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "StopStatus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _StopStatus_stopTime(ctx context.Context, field graphql.CollectedField, obj *model.StopStatus) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_StopStatus_stopTime(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.StopTime, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Time)
-	fc.Result = res
-	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_StopStatus_stopTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "StopStatus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4030,8 +3976,16 @@ func (ec *executionContext) _ProgrammedInterval(ctx context.Context, sel ast.Sel
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "stopped":
-			out.Values[i] = ec._ProgrammedInterval_stopped(ctx, field, obj)
+		case "isActive":
+			out.Values[i] = ec._ProgrammedInterval_isActive(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "stoppedTime":
+			out.Values[i] = ec._ProgrammedInterval_stoppedTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4145,50 +4099,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___schema(ctx, field)
 			})
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var stopStatusImplementors = []string{"StopStatus"}
-
-func (ec *executionContext) _StopStatus(ctx context.Context, sel ast.SelectionSet, obj *model.StopStatus) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, stopStatusImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("StopStatus")
-		case "status":
-			out.Values[i] = ec._StopStatus_status(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "stopTime":
-			out.Values[i] = ec._StopStatus_stopTime(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4589,77 +4499,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNDayOfWeek2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeek(ctx context.Context, v interface{}) (model.DayOfWeek, error) {
-	var res model.DayOfWeek
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNDayOfWeek2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeek(ctx context.Context, sel ast.SelectionSet, v model.DayOfWeek) graphql.Marshaler {
-	return v
-}
-
-func (ec *executionContext) unmarshalNDayOfWeek2ᚕstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeekᚄ(ctx context.Context, v interface{}) ([]model.DayOfWeek, error) {
-	var vSlice []interface{}
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
-	var err error
-	res := make([]model.DayOfWeek, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNDayOfWeek2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeek(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNDayOfWeek2ᚕstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeekᚄ(ctx context.Context, sel ast.SelectionSet, v []model.DayOfWeek) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNDayOfWeek2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐDayOfWeek(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
 func (ec *executionContext) unmarshalNDuration2timeᚐDuration(ctx context.Context, v interface{}) (time.Duration, error) {
 	res, err := graphql.UnmarshalDuration(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4703,6 +4542,53 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNInt2ᚕintᚄ(ctx context.Context, v interface{}) ([]int, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]int, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNInt2int(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNInt2ᚕintᚄ(ctx context.Context, sel ast.SelectionSet, v []int) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNInt2int(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNMeasure2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐMeasure(ctx context.Context, sel ast.SelectionSet, v model.Measure) graphql.Marshaler {
@@ -5193,13 +5079,6 @@ func (ec *executionContext) marshalOState2ᚖstupidᚑcaldaiaᚋcontrollerᚋgra
 		return graphql.Null
 	}
 	return v
-}
-
-func (ec *executionContext) marshalOStopStatus2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐStopStatus(ctx context.Context, sel ast.SelectionSet, v *model.StopStatus) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._StopStatus(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

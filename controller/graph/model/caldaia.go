@@ -103,35 +103,56 @@ func (c *Boiler) SetProgrammedInterval(ctx context.Context, opt *ProgrammedInter
 	return opt, err
 }
 
-func (c *Boiler) StopProgrammedInterval(ctx context.Context, id string) (bool, error) {
+func (c *Boiler) StartProgrammedInterval(ctx context.Context, id string) error {
 	info, err := c.GetInfo(ctx)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	for _, programmedInterval := range info.ProgrammedIntervals {
 		err = fmt.Errorf("Could not find programmedInterval with id: %s", id)
 		if programmedInterval.ID == id {
-			programmedInterval.Stopped = &StopStatus{
-				Status:   true,
-				StopTime: time.Now(),
-			}
+			programmedInterval.StoppedTime = time.Time{}
+			programmedInterval.IsActive = true
 			err = nil
 			break
 		}
 	}
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	c.save(ctx, info)
-	return true, nil
+	return nil
 }
 
-func (c *Boiler) DeleteProgrammedInterval(ctx context.Context, id string) (bool, error) {
+func (c *Boiler) StopProgrammedInterval(ctx context.Context, id string) error {
 	info, err := c.GetInfo(ctx)
 	if err != nil {
-		return false, err
+		return err
+	}
+
+	for _, programmedInterval := range info.ProgrammedIntervals {
+		err = fmt.Errorf("Could not find programmedInterval with id: %s", id)
+		if programmedInterval.ID == id {
+			programmedInterval.StoppedTime = time.Now()
+			programmedInterval.IsActive = false
+			err = nil
+			break
+		}
+	}
+	if err != nil {
+		return err
+	}
+
+	c.save(ctx, info)
+	return nil
+}
+
+func (c *Boiler) DeleteProgrammedInterval(ctx context.Context, id string) error {
+	info, err := c.GetInfo(ctx)
+	if err != nil {
+		return err
 	}
 
 	for index, programmedInterval := range info.ProgrammedIntervals {
@@ -143,11 +164,11 @@ func (c *Boiler) DeleteProgrammedInterval(ctx context.Context, id string) (bool,
 		}
 	}
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	err = c.save(ctx, info)
-	return true, err
+	return err
 }
 
 func (c *Boiler) ListenProgrammedIntervals(ctx context.Context) (<-chan []*ProgrammedInterval, error) {
