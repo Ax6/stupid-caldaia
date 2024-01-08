@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-func ShouldHeat(programmedIntervals []*model.ProgrammedInterval, referenceTemperature float64) bool {
-	for _, programmedInterval := range programmedIntervals {
+func ShouldHeat(rule []*model.Rule, referenceTemperature float64) bool {
+	for _, programmedInterval := range rule {
 		// Check if the programmed interval is active
 		temperatureNotOk := referenceTemperature < programmedInterval.TargetTemp
 		shouldHeat := programmedInterval.ShouldBeActive() && temperatureNotOk
@@ -37,7 +37,7 @@ func TemperatureChangeController(ctx context.Context, boiler *model.Boiler, temp
 		if err != nil {
 			panic(err)
 		}
-		if ShouldHeat(boilerInfo.ProgrammedIntervals, currentTemperature) {
+		if ShouldHeat(boilerInfo.Rules, currentTemperature) {
 			boiler.Switch(ctx, model.StateOn)
 		} else {
 			boiler.Switch(ctx, model.StateOff)
@@ -46,19 +46,19 @@ func TemperatureChangeController(ctx context.Context, boiler *model.Boiler, temp
 }
 
 func RuleTimingController(ctx context.Context, boiler *model.Boiler) {
-	alertTimeoutStop := make(chan *model.ProgrammedInterval, 1)
-	alertTimeoutStart := make(chan *model.ProgrammedInterval, 1)
-	manageChangeOfRules := func(programmedIntervals []*model.ProgrammedInterval) context.CancelFunc {
+	alertTimeoutStop := make(chan *model.Rule, 1)
+	alertTimeoutStart := make(chan *model.Rule, 1)
+	manageChangeOfRules := func(rule []*model.Rule) context.CancelFunc {
 		cancelContext, cancelTimeouts := context.WithCancel(ctx)
 		now := time.Now()
-		for _, programmedInterval := range programmedIntervals {
+		for _, programmedInterval := range rule {
 			shouldBeActive := programmedInterval.ShouldBeActive()
 			isActive := programmedInterval.IsActive
 			willStartInFuture := programmedInterval.WindowStartTime(now).After(now)
 			switch {
 			case shouldBeActive && !isActive:
 				// This has just been created and not active, should start immediately
-				boiler.StartProgrammedInterval(ctx, programmedInterval.ID)
+				boiler.StartRule(ctx, programmedInterval.ID)
 			case shouldBeActive && isActive:
 				// Currently active, we need to set a stop timeout
 				go programmedInterval.WindowStopTimeout(cancelContext, alertTimeoutStop)
@@ -74,10 +74,10 @@ func RuleTimingController(ctx context.Context, boiler *model.Boiler) {
 	if err != nil {
 		panic(err)
 	}
-	cancelTimeouts := manageChangeOfRules(info.ProgrammedIntervals)
+	cancelTimeouts := manageChangeOfRules(info.Rules)
 	defer cancelTimeouts()
 
-	programmedIntervalsListener, err := boiler.ListenProgrammedIntervals(ctx)
+	ruleListener, err := boiler.ListenRules(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -87,32 +87,32 @@ func RuleTimingController(ctx context.Context, boiler *model.Boiler) {
 			case programmedInterval := <-alertTimeoutStart:
 				fmt.Printf("🟢 Received alert. Starting programmed interval... %s\n", programmedInterval)
 				// Start requested programmed interval and trigger state update
-				programmedInterval, err := boiler.StartProgrammedInterval(ctx, programmedInterval.ID)
+				programmedInterval, err := boiler.StartRule(ctx, programmedInterval.ID)
 				if err != nil {
 					fmt.Println(fmt.Errorf("Could not start rule after timeout: %w %s\n", err, programmedInterval))
 				}
 			case programmedInterval := <-alertTimeoutStop:
 				fmt.Printf("🛑 Received alert. Stopping programmed interval... %s\n", programmedInterval)
-				programmedInterval, err := boiler.StopProgrammedInterval(ctx, programmedInterval.ID)
+				programmedInterval, err := boiler.StopRule(ctx, programmedInterval.ID)
 				if err != nil {
 					fmt.Println(fmt.Errorf("Could not stop rule after timeout: %w %s\n", err, programmedInterval))
 				}
-			case programmedIntervals := <-programmedIntervalsListener:
+			case rule := <-ruleListener:
 				// Listen to state updates (change of rules, stops and starts)
-				fmt.Printf("🗽 Programmed intervals (count: %d) have changed, updating timeouts...\n", len(programmedIntervals))
+				fmt.Printf("🗽 Programmed intervals (count: %d) have changed, updating timeouts...\n", len(rule))
 				cancelTimeouts()
-				cancelTimeouts = manageChangeOfRules(programmedIntervals)
+				cancelTimeouts = manageChangeOfRules(rule)
 			}
 		}
 	}()
 }
 
 func RuleEnforceController(ctx context.Context, boiler *model.Boiler, temperatureSensor *model.Sensor) {
-	programmedIntervalsListener, err := boiler.ListenProgrammedIntervals(ctx)
+	ruleListener, err := boiler.ListenRules(ctx)
 	if err != nil {
 		panic(err)
 	}
-	for programmedIntervals := range programmedIntervalsListener {
+	for rule := range ruleListener {
 		averageTemperature, err := temperatureSensor.GetAverage(ctx, time.Now().Add(-20*time.Minute), time.Now())
 		if err != nil {
 			panic(err)
@@ -126,7 +126,7 @@ func RuleEnforceController(ctx context.Context, boiler *model.Boiler, temperatur
 			referenceTemperature = boilerInfo.MaxTemp
 		}
 
-		if ShouldHeat(programmedIntervals, referenceTemperature) {
+		if ShouldHeat(rule, referenceTemperature) {
 			boiler.Switch(ctx, model.StateOn)
 		} else {
 			boiler.Switch(ctx, model.StateOff)

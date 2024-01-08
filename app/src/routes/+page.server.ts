@@ -18,10 +18,10 @@ export type Boiler = {
 	state: State;
 	minTemp: number;
 	maxTemp: number;
-	programmedIntervals: ProgrammedInterval[];
+	rule: Rule[];
 };
 
-export type ProgrammedInterval = {
+export type Rule = {
 	id: string;
 	start: string;
 	duration: string;
@@ -43,7 +43,7 @@ export async function load(): Promise<PageData> {
 				state
 				minTemp
 				maxTemp
-				programmedIntervals {
+				rule {
 					id
 					start
 					duration

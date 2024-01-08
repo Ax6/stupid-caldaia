@@ -36,27 +36,27 @@ func (r *mutationResolver) UpdateBoiler(ctx context.Context, state *model.State,
 	return r.Resolver.Boiler.GetInfo(ctx)
 }
 
-// SetProgrammedInterval is the resolver for the setProgrammedInterval field.
-func (r *mutationResolver) SetProgrammedInterval(ctx context.Context, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []int) (*model.ProgrammedInterval, error) {
-	opt := &model.ProgrammedInterval{
+// SetRule is the resolver for the setRule field.
+func (r *mutationResolver) SetRule(ctx context.Context, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []int) (*model.Rule, error) {
+	opt := &model.Rule{
 		ID:         *id,
 		Start:      start,
 		Duration:   duration,
 		TargetTemp: targetTemp,
 		RepeatDays: repeatDays,
 	}
-	return r.Resolver.Boiler.SetProgrammedInterval(ctx, opt)
+	return r.Resolver.Boiler.SetRule(ctx, opt)
 }
 
-// StopProgrammedInterval is the resolver for the stopProgrammedInterval field.
-func (r *mutationResolver) StopProgrammedInterval(ctx context.Context, id string) (bool, error) {
-	programmedInterval, err := r.Resolver.Boiler.StopProgrammedInterval(ctx, id)
+// StopRule is the resolver for the stopRule field.
+func (r *mutationResolver) StopRule(ctx context.Context, id string) (bool, error) {
+	programmedInterval, err := r.Resolver.Boiler.StopRule(ctx, id)
 	return !programmedInterval.IsActive, err
 }
 
-// DeleteProgrammedInterval is the resolver for the deleteProgrammedInterval field.
-func (r *mutationResolver) DeleteProgrammedInterval(ctx context.Context, id string) (bool, error) {
-	err := r.Resolver.Boiler.DeleteProgrammedInterval(ctx, id)
+// DeleteRule is the resolver for the deleteRule field.
+func (r *mutationResolver) DeleteRule(ctx context.Context, id string) (bool, error) {
+	err := r.Resolver.Boiler.DeleteRule(ctx, id)
 	return err != nil, err
 }
 

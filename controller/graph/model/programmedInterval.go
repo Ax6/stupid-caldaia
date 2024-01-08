@@ -9,7 +9,7 @@ import (
 type DayOfWeek = time.Weekday
 
 // It should be active if now it's in the current time window and we shouldn't stop
-func (p *ProgrammedInterval) ShouldBeActive() bool {
+func (p *Rule) ShouldBeActive() bool {
 	now := time.Now()
 	wStart := p.WindowStartTime(now)
 	wEnd := wStart.Add(p.Duration)
@@ -17,7 +17,7 @@ func (p *ProgrammedInterval) ShouldBeActive() bool {
 }
 
 // It should stop if the stop command was sent in the current or upcoming window and we are past that time
-func (p *ProgrammedInterval) ShouldBeStopped() bool {
+func (p *Rule) ShouldBeStopped() bool {
 	sTime := p.StoppedTime
 	if sTime.IsZero() {
 		return false
@@ -30,7 +30,7 @@ func (p *ProgrammedInterval) ShouldBeStopped() bool {
 
 // Relative to the referenceTime, if we are in a window returns the start time
 // of this window, otherwise returns the start of the upcoming window
-func (p *ProgrammedInterval) WindowStartTime(referenceTime time.Time) time.Time {
+func (p *Rule) WindowStartTime(referenceTime time.Time) time.Time {
 	if len(p.RepeatDays) == 0 {
 		return p.Start
 	}
@@ -57,7 +57,7 @@ func (p *ProgrammedInterval) WindowStartTime(referenceTime time.Time) time.Time 
 	return upcomingStart
 }
 
-func (p *ProgrammedInterval) WindowStopTimeout(ctx context.Context, alert chan<- *ProgrammedInterval) {
+func (p *Rule) WindowStopTimeout(ctx context.Context, alert chan<- *Rule) {
 	now := time.Now()
 	duration := p.WindowStartTime(now).Sub(now) + p.Duration
 	fmt.Printf("⏰ Set stop timeout of %s for interval %s\n", duration, p)
@@ -72,7 +72,7 @@ func (p *ProgrammedInterval) WindowStopTimeout(ctx context.Context, alert chan<-
 	}
 }
 
-func (p *ProgrammedInterval) WindowStartTimeout(ctx context.Context, alert chan<- *ProgrammedInterval) {
+func (p *Rule) WindowStartTimeout(ctx context.Context, alert chan<- *Rule) {
 	now := time.Now()
 	duration := p.WindowStartTime(now).Sub(now)
 	fmt.Printf("⏰ Set start timeout of %s for interval %s\n", duration, p)
@@ -87,7 +87,7 @@ func (p *ProgrammedInterval) WindowStartTimeout(ctx context.Context, alert chan<
 	}
 }
 
-func (p *ProgrammedInterval) String() string {
+func (p *Rule) String() string {
 	startTime := p.Start.Format("15:04")
 	stopTime := "Never"
 	if !p.StoppedTime.IsZero() {

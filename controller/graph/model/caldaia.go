@@ -82,7 +82,7 @@ func (c *Boiler) SetMaxTemp(ctx context.Context, temp float64) (*float64, error)
 	return &info.MaxTemp, err
 }
 
-func (c *Boiler) SetProgrammedInterval(ctx context.Context, opt *ProgrammedInterval) (*ProgrammedInterval, error) {
+func (c *Boiler) SetRule(ctx context.Context, opt *Rule) (*Rule, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	info, err := c.GetInfo(ctx)
@@ -94,9 +94,9 @@ func (c *Boiler) SetProgrammedInterval(ctx context.Context, opt *ProgrammedInter
 	}
 
 	// Map programmed intervals to a map for easier lookup
-	lookupProgrammedIntervals := make(map[string]*ProgrammedInterval)
-	for _, interval := range info.ProgrammedIntervals {
-		lookupProgrammedIntervals[interval.ID] = interval
+	lookupRules := make(map[string]*Rule)
+	for _, interval := range info.Rules {
+		lookupRules[interval.ID] = interval
 	}
 
 	// If ID is present in the opt, use that, otherwise generate a new one
@@ -104,20 +104,20 @@ func (c *Boiler) SetProgrammedInterval(ctx context.Context, opt *ProgrammedInter
 		// Create ours if not present
 		opt.ID = fmt.Sprintf("%d", time.Now().UnixNano())
 	}
-	lookupProgrammedIntervals[opt.ID] = opt
+	lookupRules[opt.ID] = opt
 
 	// Convert back to a slice
-	programmedIntervals := make([]*ProgrammedInterval, 0, len(lookupProgrammedIntervals))
-	for _, interval := range lookupProgrammedIntervals {
-		programmedIntervals = append(programmedIntervals, interval)
+	rule := make([]*Rule, 0, len(lookupRules))
+	for _, interval := range lookupRules {
+		rule = append(rule, interval)
 	}
-	info.ProgrammedIntervals = programmedIntervals
+	info.Rules = rule
 
 	err = c.save(ctx, info)
 	return opt, err
 }
 
-func (c *Boiler) StartProgrammedInterval(ctx context.Context, id string) (*ProgrammedInterval, error) {
+func (c *Boiler) StartRule(ctx context.Context, id string) (*Rule, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	info, err := c.GetInfo(ctx)
@@ -125,8 +125,8 @@ func (c *Boiler) StartProgrammedInterval(ctx context.Context, id string) (*Progr
 		return nil, err
 	}
 
-	alteredInterval := &ProgrammedInterval{}
-	for _, programmedInterval := range info.ProgrammedIntervals {
+	alteredInterval := &Rule{}
+	for _, programmedInterval := range info.Rules {
 		err = fmt.Errorf("Could not find programmedInterval with id: %s", id)
 		if programmedInterval.ID == id {
 			programmedInterval.StoppedTime = time.Time{}
@@ -141,7 +141,7 @@ func (c *Boiler) StartProgrammedInterval(ctx context.Context, id string) (*Progr
 	}
 
 	c.save(ctx, info)
-	for _, programalteredInterval := range info.ProgrammedIntervals {
+	for _, programalteredInterval := range info.Rules {
 		if programalteredInterval.ID == id {
 			fmt.Printf("🔥 Started programmed interval %s\n", programalteredInterval)
 		}
@@ -149,7 +149,7 @@ func (c *Boiler) StartProgrammedInterval(ctx context.Context, id string) (*Progr
 	return alteredInterval, nil
 }
 
-func (c *Boiler) StopProgrammedInterval(ctx context.Context, id string) (*ProgrammedInterval, error) {
+func (c *Boiler) StopRule(ctx context.Context, id string) (*Rule, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	info, err := c.GetInfo(ctx)
@@ -157,8 +157,8 @@ func (c *Boiler) StopProgrammedInterval(ctx context.Context, id string) (*Progra
 		return nil, err
 	}
 
-	alteredInterval := &ProgrammedInterval{}
-	for _, programmedInterval := range info.ProgrammedIntervals {
+	alteredInterval := &Rule{}
+	for _, programmedInterval := range info.Rules {
 		err = fmt.Errorf("Could not find programmedInterval with id: %s", id)
 		if programmedInterval.ID == id {
 			programmedInterval.StoppedTime = time.Now()
@@ -176,7 +176,7 @@ func (c *Boiler) StopProgrammedInterval(ctx context.Context, id string) (*Progra
 	return alteredInterval, nil
 }
 
-func (c *Boiler) DeleteProgrammedInterval(ctx context.Context, id string) error {
+func (c *Boiler) DeleteRule(ctx context.Context, id string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	info, err := c.GetInfo(ctx)
@@ -184,10 +184,10 @@ func (c *Boiler) DeleteProgrammedInterval(ctx context.Context, id string) error 
 		return err
 	}
 
-	for index, programmedInterval := range info.ProgrammedIntervals {
+	for index, programmedInterval := range info.Rules {
 		err = fmt.Errorf("Could not find programmed interval with id: %s", id)
 		if programmedInterval.ID == id {
-			info.ProgrammedIntervals = append(info.ProgrammedIntervals[:index], info.ProgrammedIntervals[index+1:]...)
+			info.Rules = append(info.Rules[:index], info.Rules[index+1:]...)
 			err = nil
 			break
 		}
@@ -200,13 +200,13 @@ func (c *Boiler) DeleteProgrammedInterval(ctx context.Context, id string) error 
 	return err
 }
 
-func (c *Boiler) ListenProgrammedIntervals(ctx context.Context) (<-chan []*ProgrammedInterval, error) {
-	programmedIntervalUpdates := make(chan []*ProgrammedInterval)
+func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
+	programmedIntervalUpdates := make(chan []*Rule)
 	boilerInfo, err := c.GetInfo(ctx)
 	if err != nil {
 		return nil, err
 	}
-	currentRules, err := json.Marshal(boilerInfo.ProgrammedIntervals)
+	currentRules, err := json.Marshal(boilerInfo.Rules)
 	if err != nil {
 		return nil, err
 	}
@@ -216,13 +216,13 @@ func (c *Boiler) ListenProgrammedIntervals(ctx context.Context) (<-chan []*Progr
 	}
 	go func() {
 		for boilerInfo := range boilerListener {
-			newRules, err := json.Marshal(boilerInfo.ProgrammedIntervals)
+			newRules, err := json.Marshal(boilerInfo.Rules)
 			if err != nil {
 				fmt.Println(fmt.Errorf("Error marshalling programmed intervals: %w", err))
 				continue
 			}
 			if !cmp.Equal(currentRules, newRules) {
-				programmedIntervalUpdates <- boilerInfo.ProgrammedIntervals
+				programmedIntervalUpdates <- boilerInfo.Rules
 			}
 			currentRules = newRules
 		}
@@ -263,10 +263,10 @@ func (c *Boiler) GetInfo(ctx context.Context) (*BoilerInfo, error) {
 	switch err {
 	case redis.Nil: // Data doesn't exist yet
 		defaultInfo := &BoilerInfo{
-			State:               StateUnknown,
-			MinTemp:             c.Config.DefaultMinTemperature,
-			MaxTemp:             c.Config.DefaultMaxTemperature,
-			ProgrammedIntervals: nil,
+			State:   StateUnknown,
+			MinTemp: c.Config.DefaultMinTemperature,
+			MaxTemp: c.Config.DefaultMaxTemperature,
+			Rules:   nil,
 		}
 		data, err := json.Marshal(defaultInfo)
 		if err != nil {

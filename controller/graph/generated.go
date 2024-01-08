@@ -51,10 +51,10 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	BoilerInfo struct {
-		MaxTemp             func(childComplexity int) int
-		MinTemp             func(childComplexity int) int
-		ProgrammedIntervals func(childComplexity int) int
-		State               func(childComplexity int) int
+		MaxTemp func(childComplexity int) int
+		MinTemp func(childComplexity int) int
+		Rules   func(childComplexity int) int
+		State   func(childComplexity int) int
 	}
 
 	Measure struct {
@@ -63,13 +63,19 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		DeleteProgrammedInterval func(childComplexity int, id string) int
-		SetProgrammedInterval    func(childComplexity int, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []int) int
-		StopProgrammedInterval   func(childComplexity int, id string) int
-		UpdateBoiler             func(childComplexity int, state *model.State, minTemp *float64, maxTemp *float64) int
+		DeleteRule   func(childComplexity int, id string) int
+		SetRule      func(childComplexity int, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []int) int
+		StopRule     func(childComplexity int, id string) int
+		UpdateBoiler func(childComplexity int, state *model.State, minTemp *float64, maxTemp *float64) int
 	}
 
-	ProgrammedInterval struct {
+	Query struct {
+		Boiler      func(childComplexity int) int
+		Sensor      func(childComplexity int, name string, position string) int
+		SensorRange func(childComplexity int, name string, position string, from *time.Time, to *time.Time) int
+	}
+
+	Rule struct {
 		Duration    func(childComplexity int) int
 		ID          func(childComplexity int) int
 		IsActive    func(childComplexity int) int
@@ -77,12 +83,6 @@ type ComplexityRoot struct {
 		Start       func(childComplexity int) int
 		StoppedTime func(childComplexity int) int
 		TargetTemp  func(childComplexity int) int
-	}
-
-	Query struct {
-		Boiler      func(childComplexity int) int
-		Sensor      func(childComplexity int, name string, position string) int
-		SensorRange func(childComplexity int, name string, position string, from *time.Time, to *time.Time) int
 	}
 
 	Subscription struct {
@@ -93,9 +93,9 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	UpdateBoiler(ctx context.Context, state *model.State, minTemp *float64, maxTemp *float64) (*model.BoilerInfo, error)
-	SetProgrammedInterval(ctx context.Context, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []int) (*model.ProgrammedInterval, error)
-	StopProgrammedInterval(ctx context.Context, id string) (bool, error)
-	DeleteProgrammedInterval(ctx context.Context, id string) (bool, error)
+	SetRule(ctx context.Context, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []int) (*model.Rule, error)
+	StopRule(ctx context.Context, id string) (bool, error)
+	DeleteRule(ctx context.Context, id string) (bool, error)
 }
 type QueryResolver interface {
 	Boiler(ctx context.Context) (*model.BoilerInfo, error)
@@ -140,12 +140,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.BoilerInfo.MinTemp(childComplexity), true
 
-	case "BoilerInfo.programmedIntervals":
-		if e.complexity.BoilerInfo.ProgrammedIntervals == nil {
+	case "BoilerInfo.rules":
+		if e.complexity.BoilerInfo.Rules == nil {
 			break
 		}
 
-		return e.complexity.BoilerInfo.ProgrammedIntervals(childComplexity), true
+		return e.complexity.BoilerInfo.Rules(childComplexity), true
 
 	case "BoilerInfo.state":
 		if e.complexity.BoilerInfo.State == nil {
@@ -168,41 +168,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Measure.Value(childComplexity), true
 
-	case "Mutation.deleteProgrammedInterval":
-		if e.complexity.Mutation.DeleteProgrammedInterval == nil {
+	case "Mutation.deleteRule":
+		if e.complexity.Mutation.DeleteRule == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_deleteProgrammedInterval_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_deleteRule_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteProgrammedInterval(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.DeleteRule(childComplexity, args["id"].(string)), true
 
-	case "Mutation.setProgrammedInterval":
-		if e.complexity.Mutation.SetProgrammedInterval == nil {
+	case "Mutation.setRule":
+		if e.complexity.Mutation.SetRule == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_setProgrammedInterval_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_setRule_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.SetProgrammedInterval(childComplexity, args["id"].(*string), args["start"].(time.Time), args["duration"].(time.Duration), args["targetTemp"].(float64), args["repeatDays"].([]int)), true
+		return e.complexity.Mutation.SetRule(childComplexity, args["id"].(*string), args["start"].(time.Time), args["duration"].(time.Duration), args["targetTemp"].(float64), args["repeatDays"].([]int)), true
 
-	case "Mutation.stopProgrammedInterval":
-		if e.complexity.Mutation.StopProgrammedInterval == nil {
+	case "Mutation.stopRule":
+		if e.complexity.Mutation.StopRule == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_stopProgrammedInterval_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_stopRule_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.StopProgrammedInterval(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.StopRule(childComplexity, args["id"].(string)), true
 
 	case "Mutation.updateBoiler":
 		if e.complexity.Mutation.UpdateBoiler == nil {
@@ -215,55 +215,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateBoiler(childComplexity, args["state"].(*model.State), args["minTemp"].(*float64), args["maxTemp"].(*float64)), true
-
-	case "ProgrammedInterval.duration":
-		if e.complexity.ProgrammedInterval.Duration == nil {
-			break
-		}
-
-		return e.complexity.ProgrammedInterval.Duration(childComplexity), true
-
-	case "ProgrammedInterval.id":
-		if e.complexity.ProgrammedInterval.ID == nil {
-			break
-		}
-
-		return e.complexity.ProgrammedInterval.ID(childComplexity), true
-
-	case "ProgrammedInterval.isActive":
-		if e.complexity.ProgrammedInterval.IsActive == nil {
-			break
-		}
-
-		return e.complexity.ProgrammedInterval.IsActive(childComplexity), true
-
-	case "ProgrammedInterval.repeatDays":
-		if e.complexity.ProgrammedInterval.RepeatDays == nil {
-			break
-		}
-
-		return e.complexity.ProgrammedInterval.RepeatDays(childComplexity), true
-
-	case "ProgrammedInterval.start":
-		if e.complexity.ProgrammedInterval.Start == nil {
-			break
-		}
-
-		return e.complexity.ProgrammedInterval.Start(childComplexity), true
-
-	case "ProgrammedInterval.stoppedTime":
-		if e.complexity.ProgrammedInterval.StoppedTime == nil {
-			break
-		}
-
-		return e.complexity.ProgrammedInterval.StoppedTime(childComplexity), true
-
-	case "ProgrammedInterval.targetTemp":
-		if e.complexity.ProgrammedInterval.TargetTemp == nil {
-			break
-		}
-
-		return e.complexity.ProgrammedInterval.TargetTemp(childComplexity), true
 
 	case "Query.boiler":
 		if e.complexity.Query.Boiler == nil {
@@ -295,6 +246,55 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.SensorRange(childComplexity, args["name"].(string), args["position"].(string), args["from"].(*time.Time), args["to"].(*time.Time)), true
+
+	case "Rule.duration":
+		if e.complexity.Rule.Duration == nil {
+			break
+		}
+
+		return e.complexity.Rule.Duration(childComplexity), true
+
+	case "Rule.id":
+		if e.complexity.Rule.ID == nil {
+			break
+		}
+
+		return e.complexity.Rule.ID(childComplexity), true
+
+	case "Rule.isActive":
+		if e.complexity.Rule.IsActive == nil {
+			break
+		}
+
+		return e.complexity.Rule.IsActive(childComplexity), true
+
+	case "Rule.repeatDays":
+		if e.complexity.Rule.RepeatDays == nil {
+			break
+		}
+
+		return e.complexity.Rule.RepeatDays(childComplexity), true
+
+	case "Rule.start":
+		if e.complexity.Rule.Start == nil {
+			break
+		}
+
+		return e.complexity.Rule.Start(childComplexity), true
+
+	case "Rule.stoppedTime":
+		if e.complexity.Rule.StoppedTime == nil {
+			break
+		}
+
+		return e.complexity.Rule.StoppedTime(childComplexity), true
+
+	case "Rule.targetTemp":
+		if e.complexity.Rule.TargetTemp == nil {
+			break
+		}
+
+		return e.complexity.Rule.TargetTemp(childComplexity), true
 
 	case "Subscription.boiler":
 		if e.complexity.Subscription.Boiler == nil {
@@ -455,7 +455,7 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Mutation_deleteProgrammedInterval_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_deleteRule_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -470,7 +470,7 @@ func (ec *executionContext) field_Mutation_deleteProgrammedInterval_args(ctx con
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_setProgrammedInterval_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_setRule_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *string
@@ -521,7 +521,7 @@ func (ec *executionContext) field_Mutation_setProgrammedInterval_args(ctx contex
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_stopProgrammedInterval_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_stopRule_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -844,8 +844,8 @@ func (ec *executionContext) fieldContext_BoilerInfo_maxTemp(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _BoilerInfo_programmedIntervals(ctx context.Context, field graphql.CollectedField, obj *model.BoilerInfo) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
+func (ec *executionContext) _BoilerInfo_rules(ctx context.Context, field graphql.CollectedField, obj *model.BoilerInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BoilerInfo_rules(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -858,7 +858,7 @@ func (ec *executionContext) _BoilerInfo_programmedIntervals(ctx context.Context,
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ProgrammedIntervals, nil
+		return obj.Rules, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -870,12 +870,12 @@ func (ec *executionContext) _BoilerInfo_programmedIntervals(ctx context.Context,
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.ProgrammedInterval)
+	res := resTmp.([]*model.Rule)
 	fc.Result = res
-	return ec.marshalNProgrammedInterval2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalᚄ(ctx, field.Selections, res)
+	return ec.marshalNRule2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐRuleᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_BoilerInfo_programmedIntervals(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_BoilerInfo_rules(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "BoilerInfo",
 		Field:      field,
@@ -884,21 +884,21 @@ func (ec *executionContext) fieldContext_BoilerInfo_programmedIntervals(ctx cont
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_ProgrammedInterval_id(ctx, field)
+				return ec.fieldContext_Rule_id(ctx, field)
 			case "start":
-				return ec.fieldContext_ProgrammedInterval_start(ctx, field)
+				return ec.fieldContext_Rule_start(ctx, field)
 			case "duration":
-				return ec.fieldContext_ProgrammedInterval_duration(ctx, field)
+				return ec.fieldContext_Rule_duration(ctx, field)
 			case "targetTemp":
-				return ec.fieldContext_ProgrammedInterval_targetTemp(ctx, field)
+				return ec.fieldContext_Rule_targetTemp(ctx, field)
 			case "repeatDays":
-				return ec.fieldContext_ProgrammedInterval_repeatDays(ctx, field)
+				return ec.fieldContext_Rule_repeatDays(ctx, field)
 			case "isActive":
-				return ec.fieldContext_ProgrammedInterval_isActive(ctx, field)
+				return ec.fieldContext_Rule_isActive(ctx, field)
 			case "stoppedTime":
-				return ec.fieldContext_ProgrammedInterval_stoppedTime(ctx, field)
+				return ec.fieldContext_Rule_stoppedTime(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type ProgrammedInterval", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Rule", field.Name)
 		},
 	}
 	return fc, nil
@@ -1037,8 +1037,8 @@ func (ec *executionContext) fieldContext_Mutation_updateBoiler(ctx context.Conte
 				return ec.fieldContext_BoilerInfo_minTemp(ctx, field)
 			case "maxTemp":
 				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
-			case "programmedIntervals":
-				return ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
+			case "rules":
+				return ec.fieldContext_BoilerInfo_rules(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type BoilerInfo", field.Name)
 		},
@@ -1057,8 +1057,8 @@ func (ec *executionContext) fieldContext_Mutation_updateBoiler(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_setProgrammedInterval(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_setProgrammedInterval(ctx, field)
+func (ec *executionContext) _Mutation_setRule(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_setRule(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1071,7 +1071,7 @@ func (ec *executionContext) _Mutation_setProgrammedInterval(ctx context.Context,
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().SetProgrammedInterval(rctx, fc.Args["id"].(*string), fc.Args["start"].(time.Time), fc.Args["duration"].(time.Duration), fc.Args["targetTemp"].(float64), fc.Args["repeatDays"].([]int))
+		return ec.resolvers.Mutation().SetRule(rctx, fc.Args["id"].(*string), fc.Args["start"].(time.Time), fc.Args["duration"].(time.Duration), fc.Args["targetTemp"].(float64), fc.Args["repeatDays"].([]int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1083,12 +1083,12 @@ func (ec *executionContext) _Mutation_setProgrammedInterval(ctx context.Context,
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.ProgrammedInterval)
+	res := resTmp.(*model.Rule)
 	fc.Result = res
-	return ec.marshalNProgrammedInterval2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedInterval(ctx, field.Selections, res)
+	return ec.marshalNRule2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐRule(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_setProgrammedInterval(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_setRule(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -1097,21 +1097,21 @@ func (ec *executionContext) fieldContext_Mutation_setProgrammedInterval(ctx cont
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_ProgrammedInterval_id(ctx, field)
+				return ec.fieldContext_Rule_id(ctx, field)
 			case "start":
-				return ec.fieldContext_ProgrammedInterval_start(ctx, field)
+				return ec.fieldContext_Rule_start(ctx, field)
 			case "duration":
-				return ec.fieldContext_ProgrammedInterval_duration(ctx, field)
+				return ec.fieldContext_Rule_duration(ctx, field)
 			case "targetTemp":
-				return ec.fieldContext_ProgrammedInterval_targetTemp(ctx, field)
+				return ec.fieldContext_Rule_targetTemp(ctx, field)
 			case "repeatDays":
-				return ec.fieldContext_ProgrammedInterval_repeatDays(ctx, field)
+				return ec.fieldContext_Rule_repeatDays(ctx, field)
 			case "isActive":
-				return ec.fieldContext_ProgrammedInterval_isActive(ctx, field)
+				return ec.fieldContext_Rule_isActive(ctx, field)
 			case "stoppedTime":
-				return ec.fieldContext_ProgrammedInterval_stoppedTime(ctx, field)
+				return ec.fieldContext_Rule_stoppedTime(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type ProgrammedInterval", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Rule", field.Name)
 		},
 	}
 	defer func() {
@@ -1121,15 +1121,15 @@ func (ec *executionContext) fieldContext_Mutation_setProgrammedInterval(ctx cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_setProgrammedInterval_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_setRule_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_stopProgrammedInterval(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_stopProgrammedInterval(ctx, field)
+func (ec *executionContext) _Mutation_stopRule(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_stopRule(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1142,7 +1142,7 @@ func (ec *executionContext) _Mutation_stopProgrammedInterval(ctx context.Context
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().StopProgrammedInterval(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Mutation().StopRule(rctx, fc.Args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1159,7 +1159,7 @@ func (ec *executionContext) _Mutation_stopProgrammedInterval(ctx context.Context
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_stopProgrammedInterval(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_stopRule(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -1176,15 +1176,15 @@ func (ec *executionContext) fieldContext_Mutation_stopProgrammedInterval(ctx con
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_stopProgrammedInterval_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_stopRule_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_deleteProgrammedInterval(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_deleteProgrammedInterval(ctx, field)
+func (ec *executionContext) _Mutation_deleteRule(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteRule(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1197,7 +1197,7 @@ func (ec *executionContext) _Mutation_deleteProgrammedInterval(ctx context.Conte
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteProgrammedInterval(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Mutation().DeleteRule(rctx, fc.Args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1214,7 +1214,7 @@ func (ec *executionContext) _Mutation_deleteProgrammedInterval(ctx context.Conte
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_deleteProgrammedInterval(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_deleteRule(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -1231,317 +1231,9 @@ func (ec *executionContext) fieldContext_Mutation_deleteProgrammedInterval(ctx c
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteProgrammedInterval_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_deleteRule_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProgrammedInterval_id(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProgrammedInterval_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ProgrammedInterval_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProgrammedInterval",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProgrammedInterval_start(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProgrammedInterval_start(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Start, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Time)
-	fc.Result = res
-	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ProgrammedInterval_start(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProgrammedInterval",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProgrammedInterval_duration(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProgrammedInterval_duration(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Duration, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Duration)
-	fc.Result = res
-	return ec.marshalNDuration2timeᚐDuration(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ProgrammedInterval_duration(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProgrammedInterval",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Duration does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProgrammedInterval_targetTemp(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProgrammedInterval_targetTemp(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.TargetTemp, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(float64)
-	fc.Result = res
-	return ec.marshalNFloat2float64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ProgrammedInterval_targetTemp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProgrammedInterval",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProgrammedInterval_repeatDays(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProgrammedInterval_repeatDays(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.RepeatDays, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]int)
-	fc.Result = res
-	return ec.marshalNInt2ᚕintᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ProgrammedInterval_repeatDays(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProgrammedInterval",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProgrammedInterval_isActive(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProgrammedInterval_isActive(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.IsActive, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ProgrammedInterval_isActive(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProgrammedInterval",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProgrammedInterval_stoppedTime(ctx context.Context, field graphql.CollectedField, obj *model.ProgrammedInterval) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProgrammedInterval_stoppedTime(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.StoppedTime, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Time)
-	fc.Result = res
-	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ProgrammedInterval_stoppedTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProgrammedInterval",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
 	}
 	return fc, nil
 }
@@ -1591,8 +1283,8 @@ func (ec *executionContext) fieldContext_Query_boiler(ctx context.Context, field
 				return ec.fieldContext_BoilerInfo_minTemp(ctx, field)
 			case "maxTemp":
 				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
-			case "programmedIntervals":
-				return ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
+			case "rules":
+				return ec.fieldContext_BoilerInfo_rules(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type BoilerInfo", field.Name)
 		},
@@ -1848,6 +1540,314 @@ func (ec *executionContext) fieldContext_Query___schema(ctx context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _Rule_id(ctx context.Context, field graphql.CollectedField, obj *model.Rule) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Rule_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Rule_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Rule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Rule_start(ctx context.Context, field graphql.CollectedField, obj *model.Rule) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Rule_start(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Start, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Rule_start(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Rule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Rule_duration(ctx context.Context, field graphql.CollectedField, obj *model.Rule) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Rule_duration(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Duration, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Duration)
+	fc.Result = res
+	return ec.marshalNDuration2timeᚐDuration(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Rule_duration(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Rule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Duration does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Rule_targetTemp(ctx context.Context, field graphql.CollectedField, obj *model.Rule) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Rule_targetTemp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TargetTemp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Rule_targetTemp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Rule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Rule_repeatDays(ctx context.Context, field graphql.CollectedField, obj *model.Rule) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Rule_repeatDays(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RepeatDays, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]int)
+	fc.Result = res
+	return ec.marshalNInt2ᚕintᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Rule_repeatDays(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Rule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Rule_isActive(ctx context.Context, field graphql.CollectedField, obj *model.Rule) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Rule_isActive(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsActive, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Rule_isActive(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Rule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Rule_stoppedTime(ctx context.Context, field graphql.CollectedField, obj *model.Rule) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Rule_stoppedTime(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StoppedTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Rule_stoppedTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Rule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Subscription_boiler(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
 	fc, err := ec.fieldContext_Subscription_boiler(ctx, field)
 	if err != nil {
@@ -1907,8 +1907,8 @@ func (ec *executionContext) fieldContext_Subscription_boiler(ctx context.Context
 				return ec.fieldContext_BoilerInfo_minTemp(ctx, field)
 			case "maxTemp":
 				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
-			case "programmedIntervals":
-				return ec.fieldContext_BoilerInfo_programmedIntervals(ctx, field)
+			case "rules":
+				return ec.fieldContext_BoilerInfo_rules(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type BoilerInfo", field.Name)
 		},
@@ -3798,8 +3798,8 @@ func (ec *executionContext) _BoilerInfo(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "programmedIntervals":
-			out.Values[i] = ec._BoilerInfo_programmedIntervals(ctx, field, obj)
+		case "rules":
+			out.Values[i] = ec._BoilerInfo_rules(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3896,93 +3896,24 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "setProgrammedInterval":
+		case "setRule":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_setProgrammedInterval(ctx, field)
+				return ec._Mutation_setRule(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "stopProgrammedInterval":
+		case "stopRule":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_stopProgrammedInterval(ctx, field)
+				return ec._Mutation_stopRule(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "deleteProgrammedInterval":
+		case "deleteRule":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteProgrammedInterval(ctx, field)
+				return ec._Mutation_deleteRule(ctx, field)
 			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var programmedIntervalImplementors = []string{"ProgrammedInterval"}
-
-func (ec *executionContext) _ProgrammedInterval(ctx context.Context, sel ast.SelectionSet, obj *model.ProgrammedInterval) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, programmedIntervalImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ProgrammedInterval")
-		case "id":
-			out.Values[i] = ec._ProgrammedInterval_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "start":
-			out.Values[i] = ec._ProgrammedInterval_start(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "duration":
-			out.Values[i] = ec._ProgrammedInterval_duration(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "targetTemp":
-			out.Values[i] = ec._ProgrammedInterval_targetTemp(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "repeatDays":
-			out.Values[i] = ec._ProgrammedInterval_repeatDays(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "isActive":
-			out.Values[i] = ec._ProgrammedInterval_isActive(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "stoppedTime":
-			out.Values[i] = ec._ProgrammedInterval_stoppedTime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4099,6 +4030,75 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___schema(ctx, field)
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var ruleImplementors = []string{"Rule"}
+
+func (ec *executionContext) _Rule(ctx context.Context, sel ast.SelectionSet, obj *model.Rule) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ruleImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Rule")
+		case "id":
+			out.Values[i] = ec._Rule_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "start":
+			out.Values[i] = ec._Rule_start(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "duration":
+			out.Values[i] = ec._Rule_duration(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "targetTemp":
+			out.Values[i] = ec._Rule_targetTemp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "repeatDays":
+			out.Values[i] = ec._Rule_repeatDays(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isActive":
+			out.Values[i] = ec._Rule_isActive(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "stoppedTime":
+			out.Values[i] = ec._Rule_stoppedTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4649,11 +4649,11 @@ func (ec *executionContext) marshalNMeasure2ᚖstupidᚑcaldaiaᚋcontrollerᚋg
 	return ec._Measure(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNProgrammedInterval2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedInterval(ctx context.Context, sel ast.SelectionSet, v model.ProgrammedInterval) graphql.Marshaler {
-	return ec._ProgrammedInterval(ctx, sel, &v)
+func (ec *executionContext) marshalNRule2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐRule(ctx context.Context, sel ast.SelectionSet, v model.Rule) graphql.Marshaler {
+	return ec._Rule(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNProgrammedInterval2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedIntervalᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ProgrammedInterval) graphql.Marshaler {
+func (ec *executionContext) marshalNRule2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐRuleᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Rule) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4677,7 +4677,7 @@ func (ec *executionContext) marshalNProgrammedInterval2ᚕᚖstupidᚑcaldaiaᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNProgrammedInterval2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedInterval(ctx, sel, v[i])
+			ret[i] = ec.marshalNRule2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐRule(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4697,14 +4697,14 @@ func (ec *executionContext) marshalNProgrammedInterval2ᚕᚖstupidᚑcaldaiaᚋ
 	return ret
 }
 
-func (ec *executionContext) marshalNProgrammedInterval2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐProgrammedInterval(ctx context.Context, sel ast.SelectionSet, v *model.ProgrammedInterval) graphql.Marshaler {
+func (ec *executionContext) marshalNRule2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐRule(ctx context.Context, sel ast.SelectionSet, v *model.Rule) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
-	return ec._ProgrammedInterval(ctx, sel, v)
+	return ec._Rule(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNState2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx context.Context, v interface{}) (model.State, error) {

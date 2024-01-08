@@ -11,7 +11,7 @@ func TestWindowStartTime(t *testing.T) {
 	startTime := time.Date(2024, 1, 7, 12, 0, 0, 0, time.Local)
 	duration := time.Duration(1) * time.Hour
 
-	programmedInterval := &model.ProgrammedInterval{
+	programmedInterval := &model.Rule{
 		Start:      startTime,
 		Duration:   duration,
 		RepeatDays: []int{int(time.Monday), int(time.Thursday), int(time.Sunday)},

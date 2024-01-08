@@ -25,10 +25,10 @@ type BoilerInfo {
   state: State!
   minTemp: Float!
   maxTemp: Float!
-  programmedIntervals: [ProgrammedInterval!]!
+  rules: [Rule!]!
 }
 
-type ProgrammedInterval {
+type Rule {
   id: ID!
   start: Time!
   duration: Duration!
@@ -53,13 +53,13 @@ scalar Duration
 # ---------------------------------------------
 type Mutation {
   updateBoiler(state: State, minTemp: Float, maxTemp: Float): BoilerInfo!
-  setProgrammedInterval(
+  setRule(
     id: ID
     start: Time!
     duration: Duration!
     targetTemp: Float!
     repeatDays: [Int!]!
-  ): ProgrammedInterval!
-  stopProgrammedInterval(id: ID!): Boolean!
-  deleteProgrammedInterval(id: ID!): Boolean!
+  ): Rule!
+  stopRule(id: ID!): Boolean!
+  deleteRule(id: ID!): Boolean!
 }

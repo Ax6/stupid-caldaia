@@ -10,10 +10,10 @@ import (
 )
 
 type BoilerInfo struct {
-	State               State                 `json:"state"`
-	MinTemp             float64               `json:"minTemp"`
-	MaxTemp             float64               `json:"maxTemp"`
-	ProgrammedIntervals []*ProgrammedInterval `json:"programmedIntervals"`
+	State   State   `json:"state"`
+	MinTemp float64 `json:"minTemp"`
+	MaxTemp float64 `json:"maxTemp"`
+	Rules   []*Rule `json:"rules"`
 }
 
 type Measure struct {
@@ -21,7 +21,7 @@ type Measure struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-type ProgrammedInterval struct {
+type Rule struct {
 	ID          string        `json:"id"`
 	Start       time.Time     `json:"start"`
 	Duration    time.Duration `json:"duration"`

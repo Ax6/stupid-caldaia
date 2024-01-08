@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { BoilerData, ProgrammedInterval } from './+page.server';
+	import type { BoilerData, Rule } from './+page.server';
 	import { porca, madonne, gql } from '$lib/porca-madonna-ql';
 	import type { Duration } from 'date-fns';
 	import { formatRelative, formatDuration, formatISODuration } from 'date-fns';
@@ -18,7 +18,7 @@
 	let subscription = madonne<BoilerData>(gql`
 		subscription {
 			boiler {
-				programmedIntervals {
+				rule {
 					id
 					start
 					duration
@@ -29,8 +29,8 @@
 	`);
 	subscription.set({ boiler: data.boiler });
 
-	$: programmedIntervals = $subscription.boiler.programmedIntervals;
-	$: regolaVeloce = programmedIntervals.find((interval) => interval.id === 'regola-veloce');
+	$: rule = $subscription.boiler.rule;
+	$: regolaVeloce = rule.find((interval) => interval.id === 'regola-veloce');
 	$: onTime = regolaVeloce ? formatRelative(regolaVeloce.start, new Date(), { locale: it }) : null;
 
 	function changeTargetTemp() {
@@ -44,7 +44,7 @@
 	async function unset() {
 		const result = await porca<boolean>(gql`
 			mutation quickTarget {
-				deleteProgrammedInterval(id: "regola-veloce")
+				deleteRule(id: "regola-veloce")
 			}
 		`);
 		if (result) {
@@ -55,10 +55,10 @@
 	}
 
 	async function set() {
-		const result = await porca<ProgrammedInterval>(
+		const result = await porca<Rule>(
 			gql`
 				mutation quickTarget($targetTemp: Float!, $start: Time!, $duration: Duration!) {
-					setProgrammedInterval(
+					setRule(
 						id: "regola-veloce"
 						start: $start
 						duration: $duration
