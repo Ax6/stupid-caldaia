@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -18,9 +19,15 @@ type BoilerConfig struct {
 }
 
 type Boiler struct {
-	Config BoilerConfig
-	client *redis.Client
+	Config            BoilerConfig
+	client            *redis.Client
+	lock              sync.Mutex
+	stateUpdateCancel context.CancelFunc
 }
+
+const (
+	stateUpdateBatchingTime = 1000 // In microseconds
+)
 
 func NewBoiler(ctx context.Context, client *redis.Client, config BoilerConfig) (*Boiler, error) {
 	boiler := Boiler{Config: config, client: client}
@@ -31,6 +38,8 @@ func NewBoiler(ctx context.Context, client *redis.Client, config BoilerConfig) (
 // Function to switch the relay on or off
 // Accepts only two values: "on" or "off"
 func (c *Boiler) Switch(ctx context.Context, targetState State) (*State, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	info, err := c.GetInfo(ctx)
 	if err != nil {
 		return nil, err
@@ -44,6 +53,8 @@ func (c *Boiler) Switch(ctx context.Context, targetState State) (*State, error) 
 }
 
 func (c *Boiler) SetMinTemp(ctx context.Context, temp float64) (*float64, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	info, err := c.GetInfo(ctx)
 	if err != nil {
 		return nil, err
@@ -57,6 +68,8 @@ func (c *Boiler) SetMinTemp(ctx context.Context, temp float64) (*float64, error)
 }
 
 func (c *Boiler) SetMaxTemp(ctx context.Context, temp float64) (*float64, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	info, err := c.GetInfo(ctx)
 	if err != nil {
 		return nil, err
@@ -70,6 +83,8 @@ func (c *Boiler) SetMaxTemp(ctx context.Context, temp float64) (*float64, error)
 }
 
 func (c *Boiler) SetProgrammedInterval(ctx context.Context, opt *ProgrammedInterval) (*ProgrammedInterval, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	info, err := c.GetInfo(ctx)
 	if err != nil {
 		return nil, err
@@ -102,53 +117,68 @@ func (c *Boiler) SetProgrammedInterval(ctx context.Context, opt *ProgrammedInter
 	return opt, err
 }
 
-func (c *Boiler) StartProgrammedInterval(ctx context.Context, id string) error {
+func (c *Boiler) StartProgrammedInterval(ctx context.Context, id string) (*ProgrammedInterval, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	info, err := c.GetInfo(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	alteredInterval := &ProgrammedInterval{}
 	for _, programmedInterval := range info.ProgrammedIntervals {
 		err = fmt.Errorf("Could not find programmedInterval with id: %s", id)
 		if programmedInterval.ID == id {
 			programmedInterval.StoppedTime = time.Time{}
 			programmedInterval.IsActive = true
+			alteredInterval = programmedInterval
 			err = nil
 			break
 		}
 	}
 	if err != nil {
-		return err
+		return alteredInterval, err
 	}
 
 	c.save(ctx, info)
-	return nil
+	for _, programalteredInterval := range info.ProgrammedIntervals {
+		if programalteredInterval.ID == id {
+			fmt.Printf("🔥 Started programmed interval %s\n", programalteredInterval)
+		}
+	}
+	return alteredInterval, nil
 }
 
-func (c *Boiler) StopProgrammedInterval(ctx context.Context, id string) error {
+func (c *Boiler) StopProgrammedInterval(ctx context.Context, id string) (*ProgrammedInterval, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	info, err := c.GetInfo(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	alteredInterval := &ProgrammedInterval{}
 	for _, programmedInterval := range info.ProgrammedIntervals {
 		err = fmt.Errorf("Could not find programmedInterval with id: %s", id)
 		if programmedInterval.ID == id {
 			programmedInterval.StoppedTime = time.Now()
 			programmedInterval.IsActive = false
+			alteredInterval = programmedInterval
 			err = nil
 			break
 		}
 	}
 	if err != nil {
-		return err
+		return alteredInterval, err
 	}
-
 	c.save(ctx, info)
-	return nil
+	fmt.Printf("💤 Stopped programmed interval %s\n", alteredInterval)
+	return alteredInterval, nil
 }
 
 func (c *Boiler) DeleteProgrammedInterval(ctx context.Context, id string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	info, err := c.GetInfo(ctx)
 	if err != nil {
 		return err
@@ -196,6 +226,7 @@ func (c *Boiler) ListenProgrammedIntervals(ctx context.Context) (<-chan []*Progr
 			}
 			currentRules = newRules
 		}
+		close(programmedIntervalUpdates)
 	}()
 	return programmedIntervalUpdates, nil
 }
@@ -205,6 +236,12 @@ func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {
 	go func() {
 		sub := c.client.Subscribe(ctx, c.Config.Name)
 		defer sub.Close()
+
+		if _, err := sub.Receive(ctx); err != nil {
+			fmt.Printf("failed to receive from control PubSub: %s", err)
+			return
+		}
+
 		for msg := range sub.Channel() {
 			boiler := BoilerInfo{}
 			err := json.Unmarshal([]byte(msg.Payload), &boiler)
@@ -216,6 +253,7 @@ func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {
 			}
 		}
 		close(boilerUpdates)
+		fmt.Println("👋 bye bye Mr American Pie...")
 	}()
 	return boilerUpdates, nil
 }
@@ -230,7 +268,14 @@ func (c *Boiler) GetInfo(ctx context.Context) (*BoilerInfo, error) {
 			MaxTemp:             c.Config.DefaultMaxTemperature,
 			ProgrammedIntervals: nil,
 		}
-		err := c.save(ctx, defaultInfo) // Save default values
+		data, err := json.Marshal(defaultInfo)
+		if err != nil {
+			return nil, err
+		}
+		err = c.client.Set(ctx, c.Config.Name, data, 0).Err()
+		if err != nil {
+			return nil, err
+		}
 		return defaultInfo, err
 	case nil: // No error
 		var info BoilerInfo
@@ -247,17 +292,35 @@ func (c *Boiler) save(ctx context.Context, info *BoilerInfo) error {
 	if err != nil {
 		return err
 	}
+
+	// If there is diff set
 	storedData, err := c.client.Get(ctx, c.Config.Name).Result()
 	if err != nil && err != redis.Nil {
 		return fmt.Errorf("Cannot update database. Error when getting current state: %w", err)
 	}
-	diff := cmp.Diff(data, []byte(storedData))
+	diff := cmp.Diff([]byte(storedData), data)
 	if diff != "" {
+		// If we are about to save something different from what we have in the database then save
 		err = c.client.Set(ctx, c.Config.Name, data, 0).Err()
 		if err != nil {
 			return err
 		}
-		err = c.client.Publish(ctx, c.Config.Name, data).Err()
+		// Schedule a new state message. This is delayed in case we make batch updates to the state
+		go c.batchPublish(ctx, data)
 	}
 	return err
+}
+
+func (c *Boiler) batchPublish(ctx context.Context, data []byte) error {
+	if c.stateUpdateCancel != nil {
+		c.stateUpdateCancel()
+	}
+	cancelContext, cancelContextFunction := context.WithCancel(ctx)
+	c.stateUpdateCancel = cancelContextFunction
+	select {
+	case <-cancelContext.Done():
+		return nil
+	case <-time.After(time.Microsecond * stateUpdateBatchingTime):
+		return c.client.Publish(ctx, c.Config.Name, data).Err()
+	}
 }

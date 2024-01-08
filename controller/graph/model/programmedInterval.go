@@ -36,7 +36,7 @@ func (p *ProgrammedInterval) WindowStartTime(referenceTime time.Time) time.Time 
 	}
 	now := referenceTime
 	daysUntilTarget := 7
-	todaysStart := time.Date(now.Year(), now.Month(), now.Day(), p.Start.Hour(), p.Start.Minute(), p.Start.Second(), 0, p.Start.Location())
+	todaysStart := time.Date(now.Year(), now.Month(), now.Day(), p.Start.Hour(), p.Start.Minute(), p.Start.Second(), p.Start.Nanosecond(), p.Start.Location())
 
 	for _, programmedWeekDay := range p.RepeatDays {
 		// Calculate the difference in days between the current day and the target day
@@ -59,13 +59,14 @@ func (p *ProgrammedInterval) WindowStartTime(referenceTime time.Time) time.Time 
 
 func (p *ProgrammedInterval) WindowStopTimeout(ctx context.Context, alert chan<- *ProgrammedInterval) {
 	now := time.Now()
-	fmt.Printf("⏰ Set stop timeout for programmed interval %s", p)
+	duration := p.WindowStartTime(now).Sub(now) + p.Duration
+	fmt.Printf("⏰ Set stop timeout of %s for interval %s\n", duration, p)
 	select {
 	case <-ctx.Done():
-		fmt.Printf("Context shut itself 😱 after %s\n", time.Now().Sub(now))
+		fmt.Printf("%s Context shut itself 😱 after %s\n", p.ID, time.Now().Sub(now))
 		return // Timeout was cancelled
-	case <-time.After(p.WindowStartTime(now).Sub(now) + p.Duration):
-		fmt.Printf("✋ Alerting stop! (After %s)\n", time.Now().Sub(now))
+	case <-time.After(duration):
+		fmt.Printf("✋ %s Alerting stop! (After %s)\n", p.ID, time.Now().Sub(now))
 		alert <- p
 		return
 	}
@@ -73,13 +74,14 @@ func (p *ProgrammedInterval) WindowStopTimeout(ctx context.Context, alert chan<-
 
 func (p *ProgrammedInterval) WindowStartTimeout(ctx context.Context, alert chan<- *ProgrammedInterval) {
 	now := time.Now()
-	fmt.Printf("⏰ Set start timeout for programmed interval %s", p)
+	duration := p.WindowStartTime(now).Sub(now)
+	fmt.Printf("⏰ Set start timeout of %s for interval %s\n", duration, p)
 	select {
 	case <-ctx.Done():
-		fmt.Printf("Context shut itself 😱 after %s\n", time.Now().Sub(now))
+		fmt.Printf("%s Context shut itself 😱 after %s\n", p.ID, time.Now().Sub(now))
 		return // Timeout was cancelled
-	case <-time.After(p.WindowStartTime(now).Sub(now)):
-		fmt.Printf("👉 Alerting start! (After %s)\n", time.Now().Sub(now))
+	case <-time.After(duration):
+		fmt.Printf("👉 %s Alerting start! (After %s)\n", p.ID, time.Now().Sub(now))
 		alert <- p
 		return
 	}
@@ -91,5 +93,5 @@ func (p *ProgrammedInterval) String() string {
 	if !p.StoppedTime.IsZero() {
 		stopTime = p.StoppedTime.Format("2006/01/02 15:04")
 	}
-	return fmt.Sprintf("ID%s{Days %v at %s for %s target %0.f. Now active: %v, stopped: %s}", p.ID, p.RepeatDays, startTime, p.Duration, p.TargetTemp, p.IsActive, stopTime)
+	return fmt.Sprintf("\n\t- ID%s{Days %v at %s for %s target %0.f. Now active: %v, stopped: %s}", p.ID, p.RepeatDays, startTime, p.Duration, p.TargetTemp, p.IsActive, stopTime)
 }

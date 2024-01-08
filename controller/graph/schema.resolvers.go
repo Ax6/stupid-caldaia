@@ -50,8 +50,8 @@ func (r *mutationResolver) SetProgrammedInterval(ctx context.Context, id *string
 
 // StopProgrammedInterval is the resolver for the stopProgrammedInterval field.
 func (r *mutationResolver) StopProgrammedInterval(ctx context.Context, id string) (bool, error) {
-	err := r.Resolver.Boiler.StopProgrammedInterval(ctx, id)
-	return err != nil, err
+	programmedInterval, err := r.Resolver.Boiler.StopProgrammedInterval(ctx, id)
+	return !programmedInterval.IsActive, err
 }
 
 // DeleteProgrammedInterval is the resolver for the deleteProgrammedInterval field.
