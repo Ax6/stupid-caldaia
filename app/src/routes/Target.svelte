@@ -23,13 +23,14 @@
 					start
 					duration
 					targetTemp
+					isActive
 				}
 			}
 		}
 	`);
 	subscription.set({ boiler: data.boiler });
 
-	$: rule = $subscription.boiler.rule;
+	$: rule = $subscription.boiler.rules;
 	$: regolaVeloce = rule.find((interval) => interval.id === 'regola-veloce');
 	$: onTime = regolaVeloce ? formatRelative(regolaVeloce.start, new Date(), { locale: it }) : null;
 
@@ -63,7 +64,6 @@
 						start: $start
 						duration: $duration
 						targetTemp: $targetTemp
-						repeatDays: []
 					) {
 						id
 					}
@@ -84,7 +84,7 @@
 </script>
 
 <div class="w-full min-h-32 bg-gray-200 grid place-items-center rounded-xl text-4xl">
-	{#if regolaVeloce}
+	{#if regolaVeloce && regolaVeloce.isActive}
 		<p class="mt-4">
 			Mantieni {regolaVeloce.targetTemp}°C
 		</p>

@@ -18,7 +18,7 @@ export type Boiler = {
 	state: State;
 	minTemp: number;
 	maxTemp: number;
-	rule: Rule[];
+	rules: Rule[];
 };
 
 export type Rule = {
@@ -26,7 +26,9 @@ export type Rule = {
 	start: string;
 	duration: string;
 	targetTemp: number;
-	repeatDays: [string];
+	repeatDays: [number];
+	stoppedTime: Date;
+	isActive: boolean;
 };
 
 export type State = 'OFF' | 'ON';
@@ -43,11 +45,14 @@ export async function load(): Promise<PageData> {
 				state
 				minTemp
 				maxTemp
-				rule {
+				rules {
 					id
 					start
 					duration
 					targetTemp
+					repeatDays
+					stoppedTime
+					isActive
 				}
 			}
 			sensor(name: "temperatura", position: "centrale") {
