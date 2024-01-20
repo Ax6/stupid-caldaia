@@ -9,17 +9,20 @@
 		rules = [...rules, {} as Rule];
 	}
 
+	function removeRule(event: CustomEvent<number>) {
+		rules = rules.filter((_, i) => i !== event.detail);
+	}
 </script>
 
-<div class="p-4">
+<div class="m-2 rounded-xl">
 	<h1 class="text-4xl font-bold">Regole</h1>
 	{#if rules.length === 0}
 		<p class="text-xl font-semibold">Nessuna regola impostata</p>
 	{/if}
-	<button class="bg-blue-500 text-white rounded-lg p-2" on:click={addRule}>
-		Aggiungi regola
+	<button class="bg-blue-400 rounded-lg p-2 w-full my-2" on:click={addRule}>
+		Aggiungi una regola
 	</button>
-	{#each rules as rule}
-		<Regola {minTemp} {maxTemp} {rule}/>
+	{#each rules as rule, ruleIndex}
+		<Regola {rule} {minTemp} {maxTemp} {ruleIndex} on:remove={removeRule} />
 	{/each}
 </div>

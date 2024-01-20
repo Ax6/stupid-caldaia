@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { BoilerData, Rule } from './+page.server';
+	import type { BoilerData, Rule } from '$lib/types';
 	import { porca, madonne, gql } from '$lib/porca-madonna-ql';
 	import type { Duration } from 'date-fns';
 	import { formatRelative, formatDuration, formatISODuration } from 'date-fns';
