@@ -1,41 +1,25 @@
 <script lang="ts">
-	import {} from 'date-fns';
-	import { it } from 'date-fns/locale';
+	import type { Rule } from '$lib/types';
+	import Regola from './Regola.svelte';
+	export let rules: Rule[] = [];
+	export let maxTemp: number;
+	export let minTemp: number;
 
-	export let data;
-
-	const weekDays: string[] = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
-	let startTime: string = '18:00';
-	let duration: string = '1 ora';
-	let repeatDays: number[] = [1, 2, 3, 4, 5];
-
-	function toggleRepeatDay(day: number) {
-		if (repeatDays.indexOf(day) > -1) {
-			repeatDays = repeatDays.filter((d) => d !== day);
-		} else {
-			repeatDays = [...repeatDays, day];
-		}
+	function addRule() {
+		rules = [...rules, {} as Rule];
 	}
+
 </script>
 
-<div class="p-4 rounded-xl border border-black border-lg">
-	<div class="text-xl mb-2">
-		Dalle <input type="time" bind:value={startTime} />
-		alle <input type="time" bind:value={duration} />
-		si ripete
-	</div>
-	<div class="grid grid-cols-7 place-items-center">
-		{#each weekDays as day, i}
-			<button
-				on:click={() => toggleRepeatDay((i + 8) % 7)}
-				class="w-12 h-12 rounded-full grid place-items-center color-white {repeatDays.indexOf(
-					(i + 8) % 7
-				) >= 0
-					? 'bg-blue-300'
-					: 'bg-gray-200'}"
-			>
-				{day}
-			</button>
-		{/each}
-	</div>
+<div class="p-4">
+	<h1 class="text-4xl font-bold">Regole</h1>
+	{#if rules.length === 0}
+		<p class="text-xl font-semibold">Nessuna regola impostata</p>
+	{/if}
+	<button class="bg-blue-500 text-white rounded-lg p-2" on:click={addRule}>
+		Aggiungi regola
+	</button>
+	{#each rules as rule}
+		<Regola {minTemp} {maxTemp} {rule}/>
+	{/each}
 </div>

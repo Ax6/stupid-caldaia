@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { SensorRangeData, BoilerData, Measure } from './+page.server';
+	import type { SensorRangeData, BoilerData, Measure } from '$lib/types';
 	import * as d3 from 'd3';
 
 	export let data: SensorRangeData & BoilerData;
