@@ -1,24 +1,29 @@
 # stupid-caldaia
-
 Caldaia means boiler.
 
-Since my boiler is old and stupid, I decided to make it smart, but not too much.
+My boiler is old. I decided to make it smart. But not too much.
 
 Plus one can learn go, which is pretty cool.
 
-# Interface
+# Local development
+Run `./run.sh` to start the main services. 
 
-The front-end is pretty simple. There is a button to set a quick rule to control the boiler. A center preview of the current temperature and the current state of the boiler. Below a plot of the temperature in the last 24 hours.
+Requirements:
+- docker
+- go (and air https://github.com/cosmtrek/air)
+- node
 
-<img src="resources/app.png" width="200">
+Open ports:
+- http:5178 (app)
+- http:8080 (GraphQL to controller)
+- redis:6379
 
 # Architecture
-
 The front-end is a svelte app that communicates with a go back-end (controller) in graphql, both via streams and requests. The communication between worker and controller happens via redis message broker. All data is also stored in redis.
 
-The app, the controller and the worker are all dockerized and running on a raspberry pi zero 2w.
+The app, the controller and the worker are all dockerized and running on a Raspberry PI Zero 2W.
 
-Following a diagram of the deployment:
+Following, a diagram of the deployment:
 
 ```mermaid
 
@@ -51,6 +56,13 @@ graph LR
     IT --> W
     IS --> B
 ```
+
+# Interface
+
+The front-end is pretty simple. There is a button to set a quick rule to control the boiler. A center preview of the current temperature and the current state of the boiler. Below a plot of the temperature in the last 24 hours.
+
+<img src="resources/app.png" width="200">
+
 
 # Flash raspberry
 

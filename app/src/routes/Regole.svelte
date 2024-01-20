@@ -4,7 +4,7 @@
 
 	export let data;
 
-	const weekDays: string[] = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Sun'];
+	const weekDays: string[] = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 	let startTime: string = '18:00';
 	let duration: string = '1 ora';
 	let repeatDays: number[] = [1, 2, 3, 4, 5];
