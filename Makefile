@@ -9,9 +9,12 @@ WORKER_IMAGE=stupid-caldaia-worker
 # make bundle-client
 # make bundle-server
 # make restart-target
-deploy-all: sync bundle-client bundle-server restart-target
+deploy: sync bundle-client bundle-server restart-target
 deploy-client: sync bundle-client restart-target
 deploy-server: sync bundle-server restart-target
+
+init: # Don't forget about me!
+	docker run --privileged --rm tonistiigi/binfmt --install all
 
 run-app-target:
 	cd app && PUBLIC_SERVER_HOST=$(TARGET_ADDRESS) PUBLIC_CLIENT_HOST=$(TARGET_ADDRESS) npm run dev && cd..
