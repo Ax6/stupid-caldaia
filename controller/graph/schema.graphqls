@@ -35,7 +35,7 @@ type Rule {
   targetTemp: Float!
   repeatDays: [Int!]!
   isActive: Boolean!
-  stoppedTime: Time!
+  stoppedTime: Time
 }
 
 enum State {

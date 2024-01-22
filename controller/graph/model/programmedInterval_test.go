@@ -65,3 +65,30 @@ func TestWindowStartTime(t *testing.T) {
 		})
 	}
 }
+
+func TestShouldBeActive(t *testing.T) {
+	now := time.Now()
+	oneHourAgo := now.Add(-time.Duration(1) * time.Hour)
+	twoHours := time.Duration(2) * time.Hour
+
+	rule := &model.Rule{
+		Start:    oneHourAgo,
+		Duration: twoHours,
+	}
+
+	if rule.ShouldBeStopped() {
+		t.Fatal("Rule should not be stopped")
+	}
+	if !rule.ShouldBeActive() {
+		t.Fatal("Rule should be active")
+	}
+
+	rule.StoppedTime = &now
+
+	if !rule.ShouldBeStopped() {
+		t.Fatal("Rule should be stopped")
+	}
+	if rule.ShouldBeActive() {
+		t.Fatal("Rule should not be active")
+	}
+}

@@ -28,7 +28,7 @@ type Rule struct {
 	TargetTemp  float64       `json:"targetTemp"`
 	RepeatDays  []int         `json:"repeatDays"`
 	IsActive    bool          `json:"isActive"`
-	StoppedTime time.Time     `json:"stoppedTime"`
+	StoppedTime *time.Time    `json:"stoppedTime,omitempty"`
 }
 
 type State string

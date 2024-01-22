@@ -129,7 +129,6 @@ func (c *Boiler) StartRule(ctx context.Context, id string) (*Rule, error) {
 	for _, programmedInterval := range info.Rules {
 		err = fmt.Errorf("Could not find programmedInterval with id: %s", id)
 		if programmedInterval.ID == id {
-			programmedInterval.StoppedTime = time.Time{}
 			programmedInterval.IsActive = true
 			alteredInterval = programmedInterval
 			err = nil
@@ -161,7 +160,8 @@ func (c *Boiler) StopRule(ctx context.Context, id string) (*Rule, error) {
 	for _, programmedInterval := range info.Rules {
 		err = fmt.Errorf("Could not find programmedInterval with id: %s", id)
 		if programmedInterval.ID == id {
-			programmedInterval.StoppedTime = time.Now()
+			stopTime := time.Now()
+			programmedInterval.StoppedTime = &stopTime
 			programmedInterval.IsActive = false
 			alteredInterval = programmedInterval
 			err = nil
@@ -177,6 +177,7 @@ func (c *Boiler) StopRule(ctx context.Context, id string) (*Rule, error) {
 }
 
 func (c *Boiler) DeleteRule(ctx context.Context, id string) error {
+	fmt.Printf("Deleting rule %s\n", id)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	info, err := c.GetInfo(ctx)
@@ -201,7 +202,7 @@ func (c *Boiler) DeleteRule(ctx context.Context, id string) error {
 }
 
 func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
-	programmedIntervalUpdates := make(chan []*Rule)
+	programmedIntervalUpdates := make(chan []*Rule, 1)
 	boilerInfo, err := c.GetInfo(ctx)
 	if err != nil {
 		return nil, err
@@ -232,7 +233,7 @@ func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
 }
 
 func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {
-	boilerUpdates := make(chan *BoilerInfo)
+	boilerUpdates := make(chan *BoilerInfo, 1)
 	go func() {
 		sub := c.client.Subscribe(ctx, c.Config.Name)
 		defer sub.Close()
@@ -241,7 +242,6 @@ func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {
 			fmt.Printf("failed to receive from control PubSub: %s", err)
 			return
 		}
-
 		for msg := range sub.Channel() {
 			boiler := BoilerInfo{}
 			err := json.Unmarshal([]byte(msg.Payload), &boiler)
@@ -306,21 +306,21 @@ func (c *Boiler) save(ctx context.Context, info *BoilerInfo) error {
 			return err
 		}
 		// Schedule a new state message. This is delayed in case we make batch updates to the state
-		go c.batchPublish(ctx, data)
+		go c.batchPublish(data)
 	}
 	return err
 }
 
-func (c *Boiler) batchPublish(ctx context.Context, data []byte) error {
+func (c *Boiler) batchPublish(data []byte) error {
 	if c.stateUpdateCancel != nil {
 		c.stateUpdateCancel()
 	}
-	cancelContext, cancelContextFunction := context.WithCancel(ctx)
+	cancelContext, cancelContextFunction := context.WithCancel(context.Background())
 	c.stateUpdateCancel = cancelContextFunction
 	select {
 	case <-cancelContext.Done():
 		return nil
 	case <-time.After(time.Microsecond * stateUpdateBatchingTime):
-		return c.client.Publish(ctx, c.Config.Name, data).Err()
+		return c.client.Publish(cancelContext, c.Config.Name, data).Err()
 	}
 }

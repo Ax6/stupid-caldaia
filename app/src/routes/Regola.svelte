@@ -1,91 +1,212 @@
 <script lang="ts">
-	import type { Rule } from '$lib/types';
+	import type { Rule, RuleInput } from '$lib/types';
 	import { createEventDispatcher } from 'svelte';
-	import {} from 'date-fns';
-	import { it } from 'date-fns/locale';
-	export let ruleIndex: number;
+	import { gql, porca } from '$lib/porca-madonna-ql';
+	import {
+		getDay,
+		sub,
+		add,
+		setHours,
+		setMinutes,
+		formatISODuration,
+		formatISO,
+		format,
+		intervalToDuration,
+		compareAsc
+	} from 'date-fns';
+	import { parseISODuration } from '$lib/faster-than-open-source';
+	import { popup } from '$lib/popup';
 	export let rule: Rule;
 	export let minTemp: number;
 	export let maxTemp: number;
 
 	const weekDays: string[] = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
-	let temperature = rule.id ? rule.targetTemp : 20;
-	let startTime: string = '18:00';
-	let duration: string = '1 ora';
-	let repeatDays: number[] = [1, 2, 3, 4, 5];
-	let editing = rule !== undefined;
+	let input: {
+		temperature: number;
+		startTime: string;
+		endTime: string;
+		repeatDays: number[];
+	} = {
+		temperature: 20,
+		startTime: '18:00',
+		endTime: '01:00',
+		repeatDays: [1, 2, 3, 4, 5]
+	};
+	$: editing = rule.id === undefined;
 
 	const dispatch = createEventDispatcher();
 
+	/**
+	 * This function is used to put the data (usually from the current rule) into the input form
+	 * @param data The data to put into the input
+	 */
+	function putDataToInput(data: RuleInput) {
+		const startDate = new Date(data.start);
+		input.startTime = format(startDate, 'HH:mm');
+		input.temperature = rule.targetTemp;
+		// rule.duration is a string in the ISO 8601 format. We just need hours and minutes
+		// waiting on date-fns to bring this parseISODuration function https://github.com/date-fns/date-fns/pull/3151
+		input.endTime = format(add(startDate, parseISODuration(rule.duration)), 'HH:mm');
+		input.repeatDays = rule.repeatDays;
+	}
+
+	/** This function parses the input from the form and puts it into the
+	 * returned object so that it's ready to be sent to the server
+	 */
+	function putInputToData(): RuleInput {
+		const [startHour, startMinute] = input.startTime.split(':').map((n) => parseInt(n));
+		let start = new Date();
+		for (let previousDay = 0; previousDay < 7; previousDay += 1) {
+			const exists = input.repeatDays.filter((day) => day === getDay(start)).length > 0;
+			if (exists) {
+				break;
+			}
+			start = sub(start, { days: 1 });
+		}
+		start = setHours(start, startHour);
+		start = setMinutes(start, startMinute);
+		const isoStart = formatISO(start);
+
+		const [endHour, endMinute] = input.endTime.split(':').map((n) => parseInt(n));
+		let end = new Date();
+		end = setHours(end, endHour);
+		end = setMinutes(end, endMinute);
+		if (compareAsc(start, end) > 0) {
+			end = add(end, { days: 1 });
+		}
+		const duration = intervalToDuration({ start, end });
+		const isoDuration = formatISODuration(duration);
+		return {
+			start: isoStart,
+			duration: isoDuration,
+			targetTemp: input.temperature,
+			repeatDays: input.repeatDays
+		};
+	}
+
 	function toggleRepeatDay(day: number) {
-		if (repeatDays.indexOf(day) > -1) {
-			repeatDays = repeatDays.filter((d) => d !== day);
+		if (input.repeatDays.indexOf(day) > -1) {
+			input.repeatDays = input.repeatDays.filter((d) => d !== day);
 		} else {
-			repeatDays = [...repeatDays, day];
+			input.repeatDays = [...input.repeatDays, day];
 		}
 	}
 
 	function annulla() {
 		if (rule.id) {
-			temperature = rule.targetTemp;
-			startTime = rule.start;
-			duration = rule.duration;
-			repeatDays = rule.repeatDays;
 			editing = false;
+			putDataToInput(rule);
 		} else {
-			dispatch('remove', ruleIndex);
+			// If the rule is new, we just remove it
+			dispatch('remove', null);
 		}
 	}
 
-	function salva() {}
+	async function salva() {
+		// Start date happens on any day of repeatDays but must be in the past (or today)
+		// This assures that the rule applies only with repeat days set
+		const data = putInputToData();
+		if (data.repeatDays.length === 0) {
+			popup.set({ messages: ['Devi selezionare almeno un giorno'] });
+			return;
+		}
+		await porca(gql`
+			mutation {
+				setRule(
+					${rule.id ? `id: "${rule.id}"` : ''}
+					start: "${data.start}"
+					duration: "${data.duration}"
+					repeatDays: [${data.repeatDays.join(', ')}]
+					targetTemp: ${data.targetTemp}
+				) {
+					id
+				}
+			}
+		`);
+		editing = false;
+	}
 
-	function elimina() {}
-	$: colours = editing ? 'border-orange-500 bg-orange-300' : 'border-black bg-white';
+	async function elimina() {
+		console.log('Elimina', rule.id);
+		await porca(gql`
+			mutation {
+				deleteRule(id: "${rule.id}")
+			}
+		`);
+		//dispatch('remove', rule.id);
+	}
+
+	$: mainColours = editing ? 'border-orange-400 bg-orange-300' : 'border-black bg-white';
+	$: inputColours = editing ? 'bg-orange-200' : 'bg-inherit';
+
+	$: rule.id && putDataToInput(rule);
 </script>
 
-<div class="p-4 rounded-xl border-2 {colours} relative mt-4">
+<div class="p-2 rounded-xl border {mainColours} relative mt-4">
 	<div class="absolute w-full h-full top-0 left-0 {editing ? 'hidden' : 'block'}" />
 	<button
-		class="absolute top-1 right-1 bg-orange-300 rounded-full p-1"
+		class="absolute top-1 right-1 bg-orange-300 hover:bg-orange-400 rounded-full p-1"
 		on:click={() => (editing = true)}
 	>
 		{editing ? '' : '🖊️'}
 	</button>
-	<div class="text-xl mb-2 flex place-items-center">
-		<input
-			type="number"
-			bind:value={temperature}
-			class="w-11 bg-inherit rounded"
-			max={maxTemp}
-			min={minTemp}
-		/>
-		<p class="text-lg">°C dalle</p>
-		<input type="time" bind:value={startTime} class="bg-inherit rounded" />
-		<p class="text-lg">alle</p>
-		<input type="time" bind:value={duration} class="bg-inherit rounded" />
-		<p class="text-lg">si ripete</p>
-	</div>
-	<div class="grid grid-cols-7 place-items-center">
-		{#each weekDays as day, i}
-			<button
-				on:click={() => toggleRepeatDay((i + 8) % 7)}
-				class="w-12 h-12 rounded-full grid place-items-center color-white {repeatDays.indexOf(
-					(i + 8) % 7
-				) >= 0
-					? 'bg-blue-400'
-					: 'bg-gray-200'}"
-			>
-				{day}
-			</button>
-		{/each}
-	</div>
+	<section class="m-2">
+		<div class="text-xl mb-2 flex place-items-end">
+			<input
+				type="number"
+				disabled={!editing}
+				bind:value={input.temperature}
+				class="w-11 {inputColours} rounded px-0.5"
+				max={maxTemp}
+				min={minTemp}
+			/>
+			<p class="text-sm">°C dalle</p>
+			<input
+				type="time"
+				disabled={!editing}
+				bind:value={input.startTime}
+				class="{inputColours} rounded mx-0.5"
+			/>
+			<p class="text-sm">alle</p>
+			<input
+				type="time"
+				disabled={!editing}
+				bind:value={input.endTime}
+				class="{inputColours} rounded mx-0.5"
+			/>
+			<p class="text-sm">si ripete</p>
+		</div>
+		<div class="grid grid-cols-7 place-items-center max-w-md">
+			{#each weekDays as day, i}
+				<button
+					on:click={() => toggleRepeatDay((i + 8) % 7)}
+					class="w-11 h-11 sm:w-14 sm:h-14 rounded-full grid place-items-center color-white {input.repeatDays.indexOf(
+						(i + 8) % 7
+					) >= 0
+						? 'bg-blue-400 hover:bg-blue-500'
+						: 'bg-gray-200 hover:bg-gray-300'}"
+				>
+					{day}
+				</button>
+			{/each}
+		</div>
+	</section>
 	{#if editing}
-		<div class="flex justify-between mt-10">
+		<div class="flex justify-between mt-6">
 			{#if rule.id}
-				<button class="bg-red-400 rounded-lg p-2 mr-2" on:click={elimina}> Elimina </button>
+				<button class="bg-red-400 hover:bg-red-500 rounded-lg p-2 mr-2" on:click={elimina}>
+					Elimina
+				</button>
 			{/if}
-			<button class="bg-green-400 rounded-lg p-2 flex-grow mr-2" on:click={salva}> Salva </button>
-			<button class="bg-gray-400 rounded-lg p-2" on:click={annulla}> Annulla </button>
+			<button
+				class="bg-green-400 hover:bg-green-500 rounded-lg p-2 flex-grow mr-2"
+				on:click={salva}
+			>
+				Salva
+			</button>
+			<button class="bg-gray-400 hover:bg-gray-500 rounded-lg p-2" on:click={annulla}>
+				Annulla
+			</button>
 		</div>
 	{/if}
 </div>

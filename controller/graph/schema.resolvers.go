@@ -6,6 +6,7 @@ package graph
 
 import (
 	"context"
+	"slices"
 	"stupid-caldaia/controller/graph/model"
 	"time"
 )
@@ -38,12 +39,15 @@ func (r *mutationResolver) UpdateBoiler(ctx context.Context, state *model.State,
 
 // SetRule is the resolver for the setRule field.
 func (r *mutationResolver) SetRule(ctx context.Context, id *string, start time.Time, duration time.Duration, targetTemp float64, repeatDays []int) (*model.Rule, error) {
+	slices.Sort(repeatDays)
 	opt := &model.Rule{
-		ID:         *id,
 		Start:      start,
 		Duration:   duration,
 		TargetTemp: targetTemp,
 		RepeatDays: repeatDays,
+	}
+	if id != nil {
+		opt.ID = *id
 	}
 	return r.Resolver.Boiler.SetRule(ctx, opt)
 }
@@ -57,7 +61,7 @@ func (r *mutationResolver) StopRule(ctx context.Context, id string) (bool, error
 // DeleteRule is the resolver for the deleteRule field.
 func (r *mutationResolver) DeleteRule(ctx context.Context, id string) (bool, error) {
 	err := r.Resolver.Boiler.DeleteRule(ctx, id)
-	return err != nil, err
+	return err == nil, err
 }
 
 // Boiler is the resolver for the boiler field.

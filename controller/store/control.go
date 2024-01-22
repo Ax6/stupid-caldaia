@@ -117,8 +117,11 @@ func RuleEnforceController(ctx context.Context, boiler *model.Boiler, temperatur
 		if err != nil {
 			panic(err)
 		}
-		referenceTemperature := *averageTemperature
-		if averageTemperature == nil {
+		var referenceTemperature float64
+		if averageTemperature != nil {
+			referenceTemperature = *averageTemperature
+		} else {
+			// Default case if average temperature is not available
 			boilerInfo, err := boiler.GetInfo(ctx)
 			if err != nil {
 				fmt.Println(fmt.Errorf("Could not get Boiler info to set default reference temperature: %w", err))

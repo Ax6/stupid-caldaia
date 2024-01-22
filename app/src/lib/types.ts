@@ -19,14 +19,17 @@ export type Boiler = {
 	rules: Rule[];
 };
 
-export type Rule = {
+export type Rule = RuleInput & {
 	id: string;
+	stoppedTime: Date;
+	isActive: boolean;
+};
+
+export type RuleInput = {
 	start: string;
 	duration: string;
 	targetTemp: number;
-	repeatDays: [number];
-	stoppedTime: Date;
-	isActive: boolean;
+	repeatDays: number[];
 };
 
 export type State = 'OFF' | 'ON';

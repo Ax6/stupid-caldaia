@@ -19,7 +19,7 @@ func (p *Rule) ShouldBeActive() bool {
 // It should stop if the stop command was sent in the current or upcoming window and we are past that time
 func (p *Rule) ShouldBeStopped() bool {
 	sTime := p.StoppedTime
-	if sTime.IsZero() {
+	if sTime == nil || sTime.IsZero() {
 		return false
 	}
 	now := time.Now()
@@ -63,7 +63,6 @@ func (p *Rule) WindowStopTimeout(ctx context.Context, alert chan<- *Rule) {
 	fmt.Printf("⏰ Set stop timeout of %s for interval %s\n", duration, p)
 	select {
 	case <-ctx.Done():
-		fmt.Printf("%s Context shut itself 😱 after %s\n", p.ID, time.Now().Sub(now))
 		return // Timeout was cancelled
 	case <-time.After(duration):
 		fmt.Printf("✋ %s Alerting stop! (After %s)\n", p.ID, time.Now().Sub(now))
@@ -78,7 +77,6 @@ func (p *Rule) WindowStartTimeout(ctx context.Context, alert chan<- *Rule) {
 	fmt.Printf("⏰ Set start timeout of %s for interval %s\n", duration, p)
 	select {
 	case <-ctx.Done():
-		fmt.Printf("%s Context shut itself 😱 after %s\n", p.ID, time.Now().Sub(now))
 		return // Timeout was cancelled
 	case <-time.After(duration):
 		fmt.Printf("👉 %s Alerting start! (After %s)\n", p.ID, time.Now().Sub(now))
@@ -90,7 +88,7 @@ func (p *Rule) WindowStartTimeout(ctx context.Context, alert chan<- *Rule) {
 func (p *Rule) String() string {
 	startTime := p.Start.Format("15:04")
 	stopTime := "Never"
-	if !p.StoppedTime.IsZero() {
+	if p.StoppedTime != nil && !p.StoppedTime.IsZero() {
 		stopTime = p.StoppedTime.Format("2006/01/02 15:04")
 	}
 	return fmt.Sprintf("\n\t- ID%s{Days %v at %s for %s target %0.f. Now active: %v, stopped: %s}", p.ID, p.RepeatDays, startTime, p.Duration, p.TargetTemp, p.IsActive, stopTime)

@@ -103,3 +103,91 @@ func TestSetAndDeleteRule(t *testing.T) {
 		t.Fatal("Programmed interval was note deleted")
 	}
 }
+
+func TestSetRuleAndUpdate(t *testing.T) {
+	ctx := context.Background()
+	boiler, err := internal.CreateTestBoiler(t, ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rulesListener, err := boiler.ListenRules(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	boilerListener, err := boiler.Listen(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rule, err := boiler.SetRule(ctx, &model.Rule{
+		Start:      time.Now(),
+		Duration:   time.Second,
+		TargetTemp: internal.MAX_TEMP,
+	})
+	if err != nil {
+		t.Fatal("Could not set rule")
+	}
+
+	select {
+	case msg := <-boilerListener:
+		if msg.Rules[0].ID != rule.ID {
+			t.Fatal("Expected same rule in return but ID was different")
+		}
+		break
+	case <-time.After(time.Second):
+		t.Fatal("Timeout waiting for message")
+	}
+	select {
+	case msg := <-rulesListener:
+		if msg[0].ID != rule.ID {
+			t.Fatal("Expected same rule in return but ID was different")
+		}
+		break
+	case <-time.After(time.Second):
+		t.Fatal("Timeout waiting for message")
+	}
+
+	if rule.ID == "" {
+		t.Fatal("Expected some sort of ID for this rule")
+	}
+	if rule.Duration != time.Second {
+		t.Fatal("Want 1 second but duration is different")
+	}
+
+	updatedRule, err := boiler.SetRule(ctx, &model.Rule{
+		ID:         rule.ID,
+		Start:      time.Now(),
+		Duration:   time.Hour,
+		TargetTemp: internal.MAX_TEMP,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case msg := <-boilerListener:
+		if msg.Rules[0].ID != rule.ID {
+			t.Fatal("Expected same rule in return but ID was different")
+		}
+		break
+	case <-time.After(time.Second):
+		t.Fatal("Timeout waiting for message")
+	}
+	select {
+	case msg := <-rulesListener:
+		if msg[0].ID != rule.ID {
+			t.Fatal("Expected same rule in return but ID was different")
+		}
+		break
+	case <-time.After(time.Second):
+		t.Fatal("Timeout waiting for message")
+	}
+
+	if updatedRule.ID != rule.ID {
+		t.Fatal("Expected same rule in return but ID was different")
+	}
+	if updatedRule.Duration != time.Hour {
+		t.Fatal("Want 1 hour but duration is different")
+	}
+}

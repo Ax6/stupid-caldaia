@@ -1,28 +1,45 @@
 <script lang="ts">
-	import type { Rule } from '$lib/types';
+	import type { BoilerData, Rule } from '$lib/types';
+	import type { Readable } from 'svelte/store';
 	import Regola from './Regola.svelte';
-	export let rules: Rule[] = [];
-	export let maxTemp: number;
-	export let minTemp: number;
+	export let boilerSubscription: Readable<BoilerData>;
 
-	function addRule() {
-		rules = [...rules, {} as Rule];
+	$: rules = $boilerSubscription.boiler.rules;
+	$: minTemp = $boilerSubscription.boiler.minTemp;
+	$: maxTemp = $boilerSubscription.boiler.maxTemp;
+	$: emptyRuleExists = rules.some((rule) => rule.id === undefined);
+
+	function spawnRule() {
+		if (!emptyRuleExists) {
+			rules = [...rules, {} as Rule];
+		}
 	}
 
-	function removeRule(event: CustomEvent<number>) {
-		rules = rules.filter((_, i) => i !== event.detail);
+	function removeRule(event: CustomEvent<string | null>) {
+		if (event.detail) {
+			rules = rules.filter((rule) => rule.id !== event.detail);
+		} else {
+			rules = rules.filter((rule) => rule.id);
+		}
 	}
 </script>
 
-<div class="m-2 rounded-xl">
-	<h1 class="text-4xl font-bold">Regole</h1>
+<div class="rounded-xl bg-gray-200 border border-gray-400 p-2">
+	<div class="flex">
+		<h1 class="text-4xl font-thin flex-grow">Regola</h1>
+		{#if !emptyRuleExists}
+			<button class="bg-blue-400 hover:bg-blue-500 border border-blue-600 rounded-lg p-2 text-xl" on:click={spawnRule}>
+				Aggiungi
+			</button>
+		{/if}
+	</div>
+
 	{#if rules.length === 0}
-		<p class="text-xl font-semibold">Nessuna regola impostata</p>
+		<i class="text-xl font-thin">Nessuna regola impostata</i>
 	{/if}
-	<button class="bg-blue-400 rounded-lg p-2 w-full my-2" on:click={addRule}>
-		Aggiungi una regola
-	</button>
-	{#each rules as rule, ruleIndex}
-		<Regola {rule} {minTemp} {maxTemp} {ruleIndex} on:remove={removeRule} />
+	{#each { length: rules.length } as _, index}
+		{@const reverseIndex = rules.length - 1 - index}
+		{@const rule = rules[reverseIndex]}
+		<Regola {rule} {minTemp} {maxTemp} on:remove={removeRule} />
 	{/each}
 </div>

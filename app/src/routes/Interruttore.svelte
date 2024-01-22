@@ -1,44 +1,35 @@
 <script lang="ts">
-	import { gql, porca, madonne } from '$lib/porca-madonna-ql';
-	import type { PageData, BoilerData, Boiler } from './+page.server';
-	export let data: PageData;
-
-	let subscription = madonne<BoilerData>(gql`
-		subscription {
-			boiler {
-				state
-			}
-		}
-	`);
-	subscription.set({ boiler: data.boiler });
+	import { gql, porca } from '$lib/porca-madonna-ql';
+	import type { BoilerData } from '$lib/types';
+	import type { Readable } from 'svelte/store';
+	export let boilerSubscription: Readable<BoilerData>;
 
 	async function handleClick() {
-		const result = await porca<Boiler>(
+		await porca<BoilerData>(
 			gql`
 				mutation setState($state: State!) {
-					updateBoiler(state: $state ) {
+					updateBoiler(state: $state) {
 						state
 					}
 				}
 			`,
 			{
-				state: $subscription.boiler.state === 'ON' ? 'OFF' : 'ON'
+				state: $boilerSubscription.boiler.state === 'ON' ? 'OFF' : 'ON'
 			}
 		);
-		subscription.set({ boiler: result });
 	}
 </script>
 
 <button
-	class="pb-6 pt-4 grid place-items-center rounded-xl {$subscription.boiler.state.toLowerCase() ||
+	class="pb-4 pt-2 grid place-items-center rounded-xl {$boilerSubscription.boiler.state.toLowerCase() ||
 		'unknown'}"
 	on:click={handleClick}
 >
-	<p class="text-xl">Caldaia</p>
-	<p class="text-6xl">
-		{#if $subscription.boiler.state === 'ON'}
+	<p class="text-lg">Stato caldaia</p>
+	<p class="text-5xl font-thin">
+		{#if $boilerSubscription.boiler.state === 'ON'}
 			Accesa
-		{:else if $subscription.boiler.state === 'OFF'}
+		{:else if $boilerSubscription.boiler.state === 'OFF'}
 			Spenta
 		{:else}
 			Boh?

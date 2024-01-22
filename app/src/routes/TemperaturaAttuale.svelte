@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PageData, SensorData } from './+page.server';
+	import type { PageData, SensorData } from '$lib/types';
 	import { gql, madonne } from '$lib/porca-madonna-ql';
 	export let data: PageData;
 
@@ -14,9 +14,9 @@
 	subscription.set({ sensor: data.sensor });
 </script>
 
-<div class="pb-6 pt-4 bg-gray-400 grid place-items-center rounded-xl">
-	<p class="text-xl">Temperatura attuale</p>
-	<p class="text-6xl">
+<div class="pb-4 pt-2 bg-gray-300 grid place-items-center rounded-xl">
+	<p class="text-lg">Temperatura attuale</p>
+	<p class="text-5xl font-thin">
 		{#if $subscription.sensor?.value}
 			{$subscription.sensor.value.toFixed(1)} °C
 		{:else}

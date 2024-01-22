@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	LAG_FACTOR = 100 // Time in Ms
+	LAG_FACTOR = 200 // Time in Ms
 	SMALL_TIME = time.Duration(LAG_FACTOR/10) * time.Millisecond
 	HALF_TIME  = time.Duration(LAG_FACTOR/2) * time.Millisecond
 	FULL_TIME  = time.Duration(LAG_FACTOR) * time.Millisecond
