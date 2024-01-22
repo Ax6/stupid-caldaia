@@ -4,7 +4,7 @@
 	import Regola from './Regola.svelte';
 	export let boilerSubscription: Readable<BoilerData>;
 
-	$: rules = $boilerSubscription.boiler.rules;
+	$: rules = $boilerSubscription.boiler.rules.filter((rule) => rule.id !== "regola-veloce");
 	$: minTemp = $boilerSubscription.boiler.minTemp;
 	$: maxTemp = $boilerSubscription.boiler.maxTemp;
 	$: emptyRuleExists = rules.some((rule) => rule.id === undefined);
@@ -24,7 +24,7 @@
 	}
 </script>
 
-<div class="rounded-xl bg-gray-200 border border-gray-400 p-2">
+<div class="rounded-xl bg-gray-200 border border-gray-300 p-2">
 	<div class="flex">
 		<h1 class="text-4xl font-thin flex-grow">Regola</h1>
 		{#if !emptyRuleExists}

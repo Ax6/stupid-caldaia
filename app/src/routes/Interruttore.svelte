@@ -20,10 +20,9 @@
 	}
 </script>
 
-<button
+<div
 	class="pb-4 pt-2 grid place-items-center rounded-xl {$boilerSubscription.boiler.state.toLowerCase() ||
 		'unknown'}"
-	on:click={handleClick}
 >
 	<p class="text-lg">Stato caldaia</p>
 	<p class="text-5xl font-thin">
@@ -35,7 +34,7 @@
 			Boh?
 		{/if}
 	</p>
-</button>
+</div>
 
 <style lang="postcss">
 	.on {

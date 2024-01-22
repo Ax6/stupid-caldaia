@@ -9,7 +9,7 @@
 	let width = 0;
 	let height = 350;
 
-	const margin = { top: 20, right: 20, bottom: 20, left: 60 };
+	const margin = { top: 0, right: 20, bottom: 20, left: 60 };
 	const innerHeight = height - margin.top - margin.bottom;
 	$: innerWidth = width - margin.left - margin.right;
 
@@ -63,10 +63,9 @@
 	}
 </script>
 
-<div class="w-full" bind:clientWidth={width}>
+<div class="w-full bg-gray-200 border border-gray-300 rounded-xl" bind:clientWidth={width}>
 	<div class="m-2">
-		<h1 class="text-4xl font-bold">Grafico</h1>
-		<p class="text-xl font-semibold">Temperatura</p>
+		<h1 class="text-4xl font-thin">Grafico Temperatura</h1>
 	</div>
 	{#if width === 0}
 		<p class="text-2xl m-2 font-semibold">Caricamento...</p>
@@ -82,7 +81,7 @@
 			<g transform={`translate(${margin.left},${margin.top})`}>
 				{#each xTicks as tickValue}
 					<g transform={`translate(${xScale(tickValue)},0)`}>
-						<line y2={innerHeight} class="stroke-gray-300" />
+						<line y2={innerHeight} class="stroke-gray-400" />
 						<text text-anchor="middle" dy=".71em" y={innerHeight + 3}>
 							{tickValue.getHours()}:{tickValue.getMinutes() < 10 ? '00' : '30'}
 						</text>
@@ -90,7 +89,7 @@
 				{/each}
 				{#each yScale.ticks(5) as tickValue}
 					<g transform={`translate(0,${yScale(tickValue)})`}>
-						<line x2={innerWidth} class="stroke-gray-300" />
+						<line x2={innerWidth} class="stroke-gray-400" />
 						<text text-anchor="end" x="-3" dy=".32em">
 							{tickValue}
 						</text>

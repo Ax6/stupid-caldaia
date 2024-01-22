@@ -40,6 +40,7 @@
 	<section class="m-2"/>
 	<RegolaVeloce {boilerSubscription} />
 	<section class="m-2"/>
-	<Regole {boilerSubscription} />
 	<Grafico {data} />
+	<section class="m-2"/>
+	<Regole {boilerSubscription} />
 </div>
