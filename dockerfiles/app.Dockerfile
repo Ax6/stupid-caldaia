@@ -9,7 +9,7 @@ RUN npm install --verbose
 COPY src /app/src
 COPY *config* /app/
 ENV PUBLIC_SERVER_HOST=controller
-ENV PUBLIC_CLIENT_HOST=192.168.1.112
+ENV PUBLIC_CLIENT_HOST=192.168.1.123
 RUN npm run build
 
 EXPOSE 4173

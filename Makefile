@@ -1,5 +1,5 @@
 APP_IMAGE=stupid-caldaia-app
-TARGET_ADDRESS=192.168.1.112
+TARGET_ADDRESS=192.168.1.123
 TARGET_MACHINE=pi@$(TARGET_ADDRESS)
 CONTROLLER_IMAGE=stupid-caldaia-controller
 WORKER_IMAGE=stupid-caldaia-worker
