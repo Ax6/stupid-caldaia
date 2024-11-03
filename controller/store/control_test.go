@@ -228,3 +228,41 @@ func TestRuleTimingControllerMultipleRules(t *testing.T) {
 		t.Fatal("Expecting p_after_the_others to be active but it is not")
 	}
 }
+
+func TestRepeatingRuleNormalConditions(t *testing.T) {
+	ctx := context.Background()
+	testBoiler, err := internal.CreateTestBoiler(t, ctx)
+	if err != nil {
+		t.Fatal("Could not create test boiler %w", err)
+	}
+	go store.RuleTimingController(ctx, testBoiler)
+	someDaysAgoAtThisTime := time.Now().Add(-time.Hour * 24 * 1)
+	lastStoppedTime := someDaysAgoAtThisTime.Add(FULL_TIME)
+	// Usually a recurring rule is set sometime in the past
+
+	setRule, err := testBoiler.SetRule(ctx, &model.Rule{
+		Start:       someDaysAgoAtThisTime,
+		Duration:    FULL_TIME,
+		TargetTemp:  internal.MAX_TEMP - 3,
+		RepeatDays:  []int{0, 1, 2, 3, 4, 5, 6, 7},
+		StoppedTime: &lastStoppedTime,
+	})
+
+	if err != nil {
+		t.Fatal(fmt.Errorf("Could not create programmed interval %w", err))
+	}
+
+	time.Sleep(HALF_TIME)
+	rule := getRule(ctx, testBoiler, setRule.ID)
+
+	if !rule.IsActive {
+		t.Fatalf("Expecting rule to be active but it's not %s", rule)
+	}
+
+	time.Sleep(FULL_TIME)
+
+	rule = getRule(ctx, testBoiler, setRule.ID)
+	if rule.IsActive {
+		t.Fatalf("Expecting rule to not be active but it is %s", rule)
+	}
+}
