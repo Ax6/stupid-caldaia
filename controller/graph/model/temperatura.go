@@ -87,6 +87,7 @@ func (s *Sensor) Listen(ctx context.Context) (<-chan *Measure, error) {
 	go func() {
 		defer close(temperatureUpdates)
 		sub := s.Client.Subscribe(ctx, s.Id)
+		defer sub.Close()
 		for {
 			select {
 			case <-ctx.Done():

@@ -216,6 +216,7 @@ func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
 		return nil, err
 	}
 	go func() {
+		defer close(programmedIntervalUpdates)
 		for boilerInfo := range boilerListener {
 			newRules, err := json.Marshal(boilerInfo.Rules)
 			if err != nil {
@@ -227,7 +228,6 @@ func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
 			}
 			currentRules = newRules
 		}
-		close(programmedIntervalUpdates)
 	}()
 	return programmedIntervalUpdates, nil
 }
