@@ -25,9 +25,7 @@ func TemperatureChangeController(ctx context.Context, boiler *model.Boiler, temp
 		panic(err)
 	}
 	for measure := range temperatureListener {
-		fmt.Printf("Got new temperature measure: %f\n", measure.Value)
 		averageTemperature, err := temperatureSensor.GetAverage(ctx, time.Now().Add(-20*time.Minute), time.Now())
-		fmt.Printf("Average temperature: %f\n", *averageTemperature)
 		if err != nil {
 			panic(err)
 		}
@@ -44,7 +42,6 @@ func TemperatureChangeController(ctx context.Context, boiler *model.Boiler, temp
 		} else {
 			boiler.Switch(ctx, model.StateOff)
 		}
-		fmt.Printf("Done processing temperature measure: %f\n", measure.Value)
 	}
 }
 
