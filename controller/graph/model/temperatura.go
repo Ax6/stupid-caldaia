@@ -82,7 +82,7 @@ func (s *Sensor) Get(ctx context.Context, from time.Time, to time.Time) ([]*Meas
 }
 
 func (s *Sensor) Listen(ctx context.Context) (<-chan *Measure, error) {
-	temperatureUpdates := make(chan *Measure)
+	temperatureUpdates := make(chan *Measure, 100)
 	go func() {
 		sub := s.Client.Subscribe(ctx, s.Id)
 		for msg := range sub.Channel() {
