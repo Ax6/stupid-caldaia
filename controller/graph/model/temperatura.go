@@ -82,38 +82,52 @@ func (s *Sensor) Get(ctx context.Context, from time.Time, to time.Time) ([]*Meas
 }
 
 func (s *Sensor) Listen(ctx context.Context) (<-chan *Measure, error) {
-	temperatureUpdates := make(chan *Measure, 100)
+	temperatureUpdates := make(chan *Measure, 10)
 	go func() {
+		defer close(temperatureUpdates)
 		sub := s.Client.Subscribe(ctx, s.Id)
-		for msg := range sub.Channel() {
-			measure := Measure{}
-			err := json.Unmarshal([]byte(msg.Payload), &measure)
-			if err != nil {
-				fmt.Println(err)
-				break
-			} else {
-				temperatureUpdates <- &measure
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case msg, ok := <-sub.Channel():
+				if !ok {
+					return
+				}
+
+				// Attempt to unmarshal the payload into a Measure
+				measure := &Measure{}
+				err := json.Unmarshal([]byte(msg.Payload), measure)
+				if err != nil {
+					fmt.Println("Error unmarshalling payload:", err)
+					continue
+				}
+
+				// Send the measure to the updates channel
+				select {
+				case temperatureUpdates <- measure:
+				case <-ctx.Done():
+					return
+				}
 			}
 		}
-		close(temperatureUpdates)
 	}()
 	return temperatureUpdates, nil
 }
 
 func (s *Sensor) AddSample(ctx context.Context, sample *Measure) error {
+	// Add sample to Redis
+	_, err := s.Client.TSAdd(ctx, s.Id, int(sample.Timestamp.UnixMilli()), sample.Value).Result()
+	if err != nil {
+		return err
+	}
+
 	// Publish measure
 	message, err := json.Marshal(sample)
 	if err != nil {
 		return err
 	}
-	err = s.Client.Publish(ctx, s.Id, message).Err()
-
-	// Add sample to Redis
-	_, err = s.Client.TSAdd(ctx, s.Id, int(sample.Timestamp.UnixMilli()), sample.Value).Result()
-	if err != nil {
-		return err
-	}
-	return err
+	return s.Client.Publish(ctx, s.Id, message).Err()
 }
 
 func (s *Sensor) GetAverage(ctx context.Context, from time.Time, to time.Time) (*float64, error) {
