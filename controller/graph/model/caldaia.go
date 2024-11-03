@@ -45,7 +45,7 @@ func (c *Boiler) Switch(ctx context.Context, targetState State) (*State, error) 
 		return nil, err
 	}
 	if targetState != StateOn && targetState != StateOff {
-		return &targetState, fmt.Errorf("Invalid state to set")
+		return &targetState, fmt.Errorf("invalid state to set")
 	}
 	info.State = targetState
 	err = c.save(ctx, info)
@@ -60,7 +60,7 @@ func (c *Boiler) SetMinTemp(ctx context.Context, temp float64) (*float64, error)
 		return nil, err
 	}
 	if temp < info.MinTemp || temp > info.MaxTemp {
-		return &info.MinTemp, fmt.Errorf("Invalid min temperature")
+		return &info.MinTemp, fmt.Errorf("invalid min temperature")
 	}
 	info.MinTemp = temp
 	err = c.save(ctx, info)
@@ -75,7 +75,7 @@ func (c *Boiler) SetMaxTemp(ctx context.Context, temp float64) (*float64, error)
 		return nil, err
 	}
 	if temp > info.MaxTemp || temp < info.MinTemp {
-		return &info.MaxTemp, fmt.Errorf("Invalid max temperature")
+		return &info.MaxTemp, fmt.Errorf("invalid max temperature")
 	}
 	info.MaxTemp = temp
 	err = c.save(ctx, info)
@@ -90,7 +90,7 @@ func (c *Boiler) SetRule(ctx context.Context, opt *Rule) (*Rule, error) {
 		return nil, err
 	}
 	if opt.TargetTemp < info.MinTemp || opt.TargetTemp > info.MaxTemp {
-		return nil, fmt.Errorf("Target temperature out of bounds")
+		return nil, fmt.Errorf("target temperature out of bounds")
 	}
 
 	// Map programmed intervals to a map for easier lookup
@@ -127,7 +127,7 @@ func (c *Boiler) StartRule(ctx context.Context, id string) (*Rule, error) {
 
 	alteredInterval := &Rule{}
 	for _, programmedInterval := range info.Rules {
-		err = fmt.Errorf("Could not find programmedInterval with id: %s", id)
+		err = fmt.Errorf("could not find programmedInterval with id: %s", id)
 		if programmedInterval.ID == id {
 			programmedInterval.IsActive = true
 			alteredInterval = programmedInterval
@@ -158,7 +158,7 @@ func (c *Boiler) StopRule(ctx context.Context, id string) (*Rule, error) {
 
 	alteredInterval := &Rule{}
 	for _, programmedInterval := range info.Rules {
-		err = fmt.Errorf("Could not find programmedInterval with id: %s", id)
+		err = fmt.Errorf("could not find programmedInterval with id: %s", id)
 		if programmedInterval.ID == id {
 			stopTime := time.Now()
 			programmedInterval.StoppedTime = &stopTime
@@ -186,7 +186,7 @@ func (c *Boiler) DeleteRule(ctx context.Context, id string) error {
 	}
 
 	for index, programmedInterval := range info.Rules {
-		err = fmt.Errorf("Could not find programmed interval with id: %s", id)
+		err = fmt.Errorf("could not find programmed interval with id: %s", id)
 		if programmedInterval.ID == id {
 			info.Rules = append(info.Rules[:index], info.Rules[index+1:]...)
 			err = nil
@@ -202,7 +202,7 @@ func (c *Boiler) DeleteRule(ctx context.Context, id string) error {
 }
 
 func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
-	programmedIntervalUpdates := make(chan []*Rule, 1)
+	programmedIntervalUpdates := make(chan []*Rule, 100)
 	boilerInfo, err := c.GetInfo(ctx)
 	if err != nil {
 		return nil, err
@@ -219,7 +219,7 @@ func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
 		for boilerInfo := range boilerListener {
 			newRules, err := json.Marshal(boilerInfo.Rules)
 			if err != nil {
-				fmt.Println(fmt.Errorf("Error marshalling programmed intervals: %w", err))
+				fmt.Println(fmt.Errorf("error marshalling programmed intervals: %w", err))
 				continue
 			}
 			if !cmp.Equal(currentRules, newRules) {
@@ -296,7 +296,7 @@ func (c *Boiler) save(ctx context.Context, info *BoilerInfo) error {
 	// If there is diff set
 	storedData, err := c.client.Get(ctx, c.Config.Name).Result()
 	if err != nil && err != redis.Nil {
-		return fmt.Errorf("Cannot update database. Error when getting current state: %w", err)
+		return fmt.Errorf("cannot update database. Error when getting current state: %w", err)
 	}
 	diff := cmp.Diff([]byte(storedData), data)
 	if diff != "" {

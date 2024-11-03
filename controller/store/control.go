@@ -46,8 +46,8 @@ func TemperatureChangeController(ctx context.Context, boiler *model.Boiler, temp
 }
 
 func RuleTimingController(ctx context.Context, boiler *model.Boiler) {
-	alertTimeoutStop := make(chan *model.Rule, 1)
-	alertTimeoutStart := make(chan *model.Rule, 1)
+	alertTimeoutStop := make(chan *model.Rule, 10)
+	alertTimeoutStart := make(chan *model.Rule, 10)
 	manageChangeOfRules := func(rule []*model.Rule) context.CancelFunc {
 		cancelContext, cancelTimeouts := context.WithCancel(ctx)
 		now := time.Now()

@@ -65,7 +65,7 @@ func (p *Rule) WindowStopTimeout(ctx context.Context, alert chan<- *Rule) {
 	case <-ctx.Done():
 		return // Timeout was cancelled
 	case <-time.After(duration):
-		fmt.Printf("✋ %s Alerting stop! (After %s)\n", p.ID, time.Now().Sub(now))
+		fmt.Printf("✋ %s Alerting stop! (After %s)\n", p.ID, time.Since(now))
 		alert <- p
 		return
 	}
@@ -79,7 +79,7 @@ func (p *Rule) WindowStartTimeout(ctx context.Context, alert chan<- *Rule) {
 	case <-ctx.Done():
 		return // Timeout was cancelled
 	case <-time.After(duration):
-		fmt.Printf("👉 %s Alerting start! (After %s)\n", p.ID, time.Now().Sub(now))
+		fmt.Printf("👉 %s Alerting start! (After %s)\n", p.ID, time.Since(now))
 		alert <- p
 		return
 	}
