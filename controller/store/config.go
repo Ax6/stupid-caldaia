@@ -27,10 +27,10 @@ func LoadConfig() (Config, error) {
 		configPath = DefaultConfigPath
 	}
 	file, err := os.Open(configPath)
-	defer file.Close()
 	if err != nil {
 		panic(err)
 	}
+	defer file.Close()
 
 	config := Config{}
 	err = json.NewDecoder(file).Decode(&config)

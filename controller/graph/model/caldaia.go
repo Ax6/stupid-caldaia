@@ -125,27 +125,27 @@ func (c *Boiler) StartRule(ctx context.Context, id string) (*Rule, error) {
 		return nil, err
 	}
 
-	alteredInterval := &Rule{}
-	for _, programmedInterval := range info.Rules {
-		err = fmt.Errorf("could not find programmedInterval with id: %s", id)
-		if programmedInterval.ID == id {
-			programmedInterval.IsActive = true
-			alteredInterval = programmedInterval
+	alteredRule := &Rule{}
+	for _, rule := range info.Rules {
+		err = fmt.Errorf("could not find rule with id: %s", id)
+		if rule.ID == id {
+			rule.IsActive = true
+			alteredRule = rule
 			err = nil
 			break
 		}
 	}
 	if err != nil {
-		return alteredInterval, err
+		return alteredRule, err
 	}
 
 	c.save(ctx, info)
-	for _, programalteredInterval := range info.Rules {
-		if programalteredInterval.ID == id {
-			fmt.Printf("🔥 Started programmed interval %s\n", programalteredInterval)
+	for _, rule := range info.Rules {
+		if rule.ID == id {
+			fmt.Printf("🔥 Started programmed interval %s\n", rule)
 		}
 	}
-	return alteredInterval, nil
+	return alteredRule, nil
 }
 
 func (c *Boiler) StopRule(ctx context.Context, id string) (*Rule, error) {
@@ -157,13 +157,13 @@ func (c *Boiler) StopRule(ctx context.Context, id string) (*Rule, error) {
 	}
 
 	alteredInterval := &Rule{}
-	for _, programmedInterval := range info.Rules {
-		err = fmt.Errorf("could not find programmedInterval with id: %s", id)
-		if programmedInterval.ID == id {
+	for _, rule := range info.Rules {
+		err = fmt.Errorf("could not find rule with id: %s", id)
+		if rule.ID == id {
 			stopTime := time.Now()
-			programmedInterval.StoppedTime = &stopTime
-			programmedInterval.IsActive = false
-			alteredInterval = programmedInterval
+			rule.StoppedTime = &stopTime
+			rule.IsActive = false
+			alteredInterval = rule
 			err = nil
 			break
 		}
@@ -185,9 +185,9 @@ func (c *Boiler) DeleteRule(ctx context.Context, id string) error {
 		return err
 	}
 
-	for index, programmedInterval := range info.Rules {
+	for index, rule := range info.Rules {
 		err = fmt.Errorf("could not find programmed interval with id: %s", id)
-		if programmedInterval.ID == id {
+		if rule.ID == id {
 			info.Rules = append(info.Rules[:index], info.Rules[index+1:]...)
 			err = nil
 			break
@@ -202,7 +202,7 @@ func (c *Boiler) DeleteRule(ctx context.Context, id string) error {
 }
 
 func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
-	programmedIntervalUpdates := make(chan []*Rule, 100)
+	ruleUpdates := make(chan []*Rule, 100)
 	boilerInfo, err := c.GetInfo(ctx)
 	if err != nil {
 		return nil, err
@@ -216,7 +216,7 @@ func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
 		return nil, err
 	}
 	go func() {
-		defer close(programmedIntervalUpdates)
+		defer close(ruleUpdates)
 		for boilerInfo := range boilerListener {
 			newRules, err := json.Marshal(boilerInfo.Rules)
 			if err != nil {
@@ -224,12 +224,12 @@ func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
 				continue
 			}
 			if !cmp.Equal(currentRules, newRules) {
-				programmedIntervalUpdates <- boilerInfo.Rules
+				ruleUpdates <- boilerInfo.Rules
 			}
 			currentRules = newRules
 		}
 	}()
-	return programmedIntervalUpdates, nil
+	return ruleUpdates, nil
 }
 
 func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {

@@ -37,7 +37,7 @@ func TestRuleTimingControllerBasic(t *testing.T) {
 	ctx := context.Background()
 	testBoiler, _ := internal.CreateTestBoiler(t, ctx)
 
-	go store.RuleTimingController(ctx, testBoiler)
+	go store.RuleTimingControl(ctx, testBoiler)
 	time.Sleep(SMALL_TIME)
 
 	programmedInterval, err := testBoiler.SetRule(ctx, &model.Rule{
@@ -96,7 +96,7 @@ func TestRuleTimingControllerEdgeCases(t *testing.T) {
 	}
 
 	time.Sleep(SMALL_TIME)
-	go store.RuleTimingController(ctx, testBoiler)
+	go store.RuleTimingControl(ctx, testBoiler)
 	time.Sleep(SMALL_TIME)
 
 	info, _ := testBoiler.GetInfo(ctx)
@@ -130,7 +130,7 @@ func TestRuleTimingControllerMultipleRules(t *testing.T) {
 	if err != nil {
 		t.Fatal("Could not create test boiler %w", err)
 	}
-	go store.RuleTimingController(ctx, testBoiler)
+	go store.RuleTimingControl(ctx, testBoiler)
 	now := time.Now()
 
 	p_first, _ := testBoiler.SetRule(ctx, &model.Rule{
@@ -235,7 +235,7 @@ func TestRepeatingRuleNormalConditions(t *testing.T) {
 	if err != nil {
 		t.Fatal("Could not create test boiler %w", err)
 	}
-	go store.RuleTimingController(ctx, testBoiler)
+	go store.RuleTimingControl(ctx, testBoiler)
 	someDaysAgoAtThisTime := time.Now().Add(-time.Hour * 24 * 1)
 	lastStoppedTime := someDaysAgoAtThisTime.Add(FULL_TIME)
 	// Usually a recurring rule is set sometime in the past

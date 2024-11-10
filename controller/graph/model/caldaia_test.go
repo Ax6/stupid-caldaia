@@ -80,7 +80,7 @@ func TestSetAndDeleteRule(t *testing.T) {
 		t.Fatal("Souldn't be able to set target temperature above limit")
 	}
 
-	programmedIntervalUnderTest, err := boiler.SetRule(ctx, &model.Rule{
+	ruleUnderTest, err := boiler.SetRule(ctx, &model.Rule{
 		Start:      time.Now(),
 		Duration:   time.Second,
 		TargetTemp: internal.MAX_TEMP,
@@ -90,11 +90,11 @@ func TestSetAndDeleteRule(t *testing.T) {
 	}
 
 	boilerInfo, _ := boiler.GetInfo(ctx)
-	if len(boilerInfo.Rules) != 1 || boilerInfo.Rules[0].ID != programmedIntervalUnderTest.ID {
+	if len(boilerInfo.Rules) != 1 || boilerInfo.Rules[0].ID != ruleUnderTest.ID {
 		t.Fatal("Programmed interval was not added correctly")
 	}
 
-	err = boiler.DeleteRule(ctx, programmedIntervalUnderTest.ID)
+	err = boiler.DeleteRule(ctx, ruleUnderTest.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

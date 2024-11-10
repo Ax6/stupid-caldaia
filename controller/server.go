@@ -30,9 +30,8 @@ func main() {
 	}
 
 	client, sensors, boiler := config.CreateObjects(context.Background())
-	go store.TemperatureChangeController(ctx, boiler, sensors["temperatura:centrale"])
-	go store.RuleEnforceController(ctx, boiler, sensors["temperatura:centrale"])
-	go store.RuleTimingController(ctx, boiler)
+	go store.BoilerSwitchControl(ctx, boiler, sensors["temperatura:centrale"])
+	go store.RuleTimingControl(ctx, boiler)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
