@@ -217,16 +217,25 @@ func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
 	}
 	go func() {
 		defer close(ruleUpdates)
-		for boilerInfo := range boilerListener {
-			newRules, err := json.Marshal(boilerInfo.Rules)
-			if err != nil {
-				fmt.Println(fmt.Errorf("error marshalling programmed intervals: %w", err))
-				continue
+		for {
+			select {
+			case boilerInfo = <-boilerListener:
+				newRules, err := json.Marshal(boilerInfo.Rules)
+				if err != nil {
+					fmt.Println(fmt.Errorf("error marshalling programmed intervals: %w", err))
+					continue
+				}
+				if !cmp.Equal(currentRules, newRules) {
+					select {
+					case ruleUpdates <- boilerInfo.Rules:
+					case <-ctx.Done():
+						return
+					}
+				}
+				currentRules = newRules
+			case <-ctx.Done():
+				return
 			}
-			if !cmp.Equal(currentRules, newRules) {
-				ruleUpdates <- boilerInfo.Rules
-			}
-			currentRules = newRules
 		}
 	}()
 	return ruleUpdates, nil

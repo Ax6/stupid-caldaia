@@ -94,6 +94,7 @@ func (s *Sensor) Listen(ctx context.Context) (<-chan *Measure, error) {
 				return
 			case msg, ok := <-sub.Channel():
 				if !ok {
+					// Channel was closed we're done here
 					return
 				}
 
