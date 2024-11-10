@@ -244,25 +244,36 @@ func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
 func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {
 	boilerUpdates := make(chan *BoilerInfo)
 	go func() {
+		defer close(boilerUpdates)
 		sub := c.client.Subscribe(ctx, c.Config.Name)
 		defer sub.Close()
+		defer fmt.Println("👋 bye bye Mr American Pie...")
 
 		if _, err := sub.Receive(ctx); err != nil {
 			fmt.Printf("failed to receive from control PubSub: %s", err)
 			return
 		}
-		for msg := range sub.Channel() {
-			boiler := BoilerInfo{}
-			err := json.Unmarshal([]byte(msg.Payload), &boiler)
-			if err != nil {
-				fmt.Println(err)
-				break
-			} else {
-				boilerUpdates <- &boiler
+
+		redisChannel := sub.Channel()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case msg := <-redisChannel:
+				boiler := BoilerInfo{}
+				err := json.Unmarshal([]byte(msg.Payload), &boiler)
+				if err != nil {
+					fmt.Println(err)
+					return
+				} else {
+					select {
+					case boilerUpdates <- &boiler:
+					case <-ctx.Done():
+						return
+					}
+				}
 			}
 		}
-		close(boilerUpdates)
-		fmt.Println("👋 bye bye Mr American Pie...")
 	}()
 	return boilerUpdates, nil
 }

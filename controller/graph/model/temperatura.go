@@ -93,16 +93,13 @@ func (s *Sensor) Listen(ctx context.Context) (<-chan *Measure, error) {
 			fmt.Printf("failed to receive from temperature PubSub: %s", err)
 			return
 		}
+
+		redisChannel := sub.Channel()
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case msg, ok := <-sub.Channel():
-				if !ok {
-					// Channel was closed we're done here
-					return
-				}
-
+			case msg := <-redisChannel:
 				// Attempt to unmarshal the payload into a Measure
 				measure := &Measure{}
 				err := json.Unmarshal([]byte(msg.Payload), measure)
