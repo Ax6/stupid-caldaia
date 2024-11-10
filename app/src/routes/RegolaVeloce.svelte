@@ -23,7 +23,7 @@
 	let editing: boolean = $state(false);
 	let targetTempIndex: number = $state(2);
 	let targetTimeIndex: number = $state(1);
-	const possibleTargetTemps: number[] = [10, 15, 18, 20, 22, 25];
+	const possibleTargetTemps: number[] = [10, 15, 18, 20, 22, 23, 24, 25];
 	const possibleTargetTimes: Duration[] = [30, 60, 120, 240, 360, 480].map((minutes) => {
 		return { minutes: minutes % 60, hours: Math.floor(minutes / 60) };
 	});
