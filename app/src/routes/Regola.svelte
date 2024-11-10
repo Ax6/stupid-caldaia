@@ -159,7 +159,7 @@
 		{editing ? '' : '🖊️'}
 	</button>
 	<section class="m-2">
-		<div class="text-xl mb-2 flex place-items-end">
+		<div class="text-l mb-2 flex place-items-end">
 			<input
 				type="number"
 				disabled={!editing}
@@ -186,16 +186,17 @@
 		</div>
 		<div class="grid grid-cols-7 place-items-center max-w-md">
 			{#each weekDays as day, i}
-				<button
-					onclick={() => toggleRepeatDay((i + 8) % 7)}
-					class="w-11 h-11 sm:w-14 sm:h-14 rounded-full grid place-items-center color-white {input.repeatDays.indexOf(
-						(i + 8) % 7
-					) >= 0
-						? 'bg-blue-400 hover:bg-blue-500'
-						: 'bg-gray-200 hover:bg-gray-300'}"
-				>
-					{day}
-				</button>
+				{@const repeatsOnThisDay = input.repeatDays.indexOf((i + 8) % 7) >= 0}
+				{#if repeatsOnThisDay || editing}
+					<button
+						onclick={() => toggleRepeatDay((i + 8) % 7)}
+						class="w-11 h-11 sm:w-14 sm:h-14 rounded-full grid place-items-center color-white {repeatsOnThisDay
+							? 'bg-blue-400 hover:bg-blue-500'
+							: 'bg-gray-200 hover:bg-gray-300'}"
+					>
+						{day}
+					</button>
+				{/if}
 			{/each}
 		</div>
 	</section>
