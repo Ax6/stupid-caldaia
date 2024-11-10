@@ -88,6 +88,11 @@ func (s *Sensor) Listen(ctx context.Context) (<-chan *Measure, error) {
 		defer close(temperatureUpdates)
 		sub := s.Client.Subscribe(ctx, s.Id)
 		defer sub.Close()
+
+		if _, err := sub.Receive(ctx); err != nil {
+			fmt.Printf("failed to receive from temperature PubSub: %s", err)
+			return
+		}
 		for {
 			select {
 			case <-ctx.Done():
