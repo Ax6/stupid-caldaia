@@ -202,7 +202,7 @@ func (c *Boiler) DeleteRule(ctx context.Context, id string) error {
 }
 
 func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
-	ruleUpdates := make(chan []*Rule, 100)
+	ruleUpdates := make(chan []*Rule)
 	boilerInfo, err := c.GetInfo(ctx)
 	if err != nil {
 		return nil, err

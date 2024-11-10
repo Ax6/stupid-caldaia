@@ -13,19 +13,25 @@ func (p *Rule) ShouldBeActive() bool {
 	now := time.Now()
 	wStart := p.WindowStartTime(now)
 	wEnd := wStart.Add(p.Duration)
+	// If it shouldn't be in a stopped state and we're inside the window
 	return now.After(wStart) && now.Before(wEnd) && !p.ShouldBeStopped()
 }
 
 // It should stop if the stop command was sent in the current or upcoming window and we are past that time
 func (p *Rule) ShouldBeStopped() bool {
-	sTime := p.StoppedTime
-	if sTime == nil || sTime.IsZero() {
+	stopTime := p.StoppedTime
+	if stopTime == nil || stopTime.IsZero() {
 		return false
 	}
 	now := time.Now()
 	wStart := p.WindowStartTime(now)
 	wEnd := wStart.Add(p.Duration)
-	return sTime.Before(now) && sTime.After(wStart) && sTime.Before(wEnd)
+	// Basically if
+	// 1. Last time we stopped the rule is before now
+	// 2. Last time we stopped the rule is after the window start
+	// 3. Last time we stopped the rule is before the window end
+	// then -> Current rule should be in stopped state
+	return stopTime.Before(now) && stopTime.After(wStart) && stopTime.Before(wEnd)
 }
 
 // Relative to the referenceTime, if we are in a window returns the start time
@@ -57,31 +63,29 @@ func (p *Rule) WindowStartTime(referenceTime time.Time) time.Time {
 	return upcomingStart
 }
 
-func (p *Rule) WindowStopTimeout(ctx context.Context, alert chan<- *Rule) {
+func (p *Rule) WindowStopTimeout(ctx context.Context) bool {
 	now := time.Now()
 	duration := p.WindowStartTime(now).Sub(now) + p.Duration
 	fmt.Printf("⏰ Set stop timeout of %s for interval %s\n", duration, p)
 	select {
 	case <-ctx.Done():
-		return // Timeout was cancelled
+		return false
 	case <-time.After(duration):
 		fmt.Printf("✋ %s Alerting stop! (After %s)\n", p.ID, time.Since(now))
-		alert <- p
-		return
+		return true
 	}
 }
 
-func (p *Rule) WindowStartTimeout(ctx context.Context, alert chan<- *Rule) {
+func (p *Rule) WindowStartTimeout(ctx context.Context) bool {
 	now := time.Now()
 	duration := p.WindowStartTime(now).Sub(now)
 	fmt.Printf("⏰ Set start timeout of %s for interval %s\n", duration, p)
 	select {
 	case <-ctx.Done():
-		return // Timeout was cancelled
+		return false
 	case <-time.After(duration):
 		fmt.Printf("👉 %s Alerting start! (After %s)\n", p.ID, time.Since(now))
-		alert <- p
-		return
+		return true
 	}
 }
 

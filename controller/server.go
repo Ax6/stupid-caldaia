@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -20,7 +21,10 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 )
 
-const defaultPort = "8080"
+const (
+	maxRescueAttempts = 10
+	defaultPort       = "8080"
+)
 
 func main() {
 	ctx := context.Background()
@@ -30,9 +34,44 @@ func main() {
 	}
 
 	client, sensors, boiler := config.CreateObjects(context.Background())
-	go store.BoilerSwitchControl(ctx, boiler, sensors["temperatura:centrale"])
-	go store.RuleTimingControl(ctx, boiler)
 
+	// Start boiler switch controller
+	go func() {
+		for i := 0; i < maxRescueAttempts; i++ {
+			err := store.BoilerSwitchControl(ctx, boiler, sensors["temperatura:centrale"])
+			if err != nil {
+				fmt.Println(fmt.Errorf("boiler switch control failure: %w", err))
+			} else {
+				fmt.Println(fmt.Errorf("boiler switch control terminated unexpectedly"))
+			}
+			if i < maxRescueAttempts-1 {
+				fmt.Println("Attempting rescue of service in 5 seconds")
+				time.Sleep(5 * time.Second)
+			}
+		}
+		fmt.Printf("💀 Tried %d times to rescues this service. That's bad - panic time!", maxRescueAttempts)
+		panic(err)
+	}()
+
+	// Start rule timing controller
+	go func() {
+		for i := 0; i < maxRescueAttempts; i++ {
+			err := store.RuleTimingControl(ctx, boiler)
+			if err != nil {
+				fmt.Println(fmt.Errorf("rule timing control failure: %w", err))
+			} else {
+				fmt.Println(fmt.Errorf("rule timing control terminated unexpectedly"))
+			}
+			if i < maxRescueAttempts-1 {
+				fmt.Println("Attempting rescue of service in 5 seconds")
+				time.Sleep(5 * time.Second)
+			}
+		}
+		fmt.Printf("💀 Tried %d times to rescues this service. That's bad - panic time!", maxRescueAttempts)
+		panic(err)
+	}()
+
+	// Host api
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowCredentials: true,
