@@ -2,12 +2,18 @@
 	import type { BoilerData, Rule } from '$lib/types';
 	import type { Readable } from 'svelte/store';
 	import Regola from './Regola.svelte';
-	export let boilerSubscription: Readable<BoilerData>;
+	interface Props {
+		boilerSubscription: Readable<BoilerData>;
+	}
 
-	$: rules = $boilerSubscription.boiler.rules.filter((rule) => rule.id !== "regola-veloce");
-	$: minTemp = $boilerSubscription.boiler.minTemp;
-	$: maxTemp = $boilerSubscription.boiler.maxTemp;
-	$: emptyRuleExists = rules.some((rule) => rule.id === undefined);
+	let { boilerSubscription }: Props = $props();
+
+	let rules = $state(
+		$boilerSubscription.boiler.rules.filter((rule) => rule.id !== 'regola-veloce')
+	);
+	let minTemp = $derived($boilerSubscription.boiler.minTemp);
+	let maxTemp = $derived($boilerSubscription.boiler.maxTemp);
+	let emptyRuleExists = $derived(rules.some((rule) => rule.id === undefined));
 
 	function spawnRule() {
 		if (!emptyRuleExists) {
@@ -28,7 +34,10 @@
 	<div class="flex">
 		<h1 class="text-4xl font-thin flex-grow">Regola</h1>
 		{#if !emptyRuleExists}
-			<button class="bg-blue-400 hover:bg-blue-500 border border-blue-600 rounded-lg p-2 text-xl" on:click={spawnRule}>
+			<button
+				class="bg-blue-400 hover:bg-blue-500 border border-blue-600 rounded-lg p-2 text-xl"
+				onclick={spawnRule}
+			>
 				Aggiungi
 			</button>
 		{/if}

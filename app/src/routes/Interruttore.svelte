@@ -2,7 +2,11 @@
 	import { gql, porca } from '$lib/porca-madonna-ql';
 	import type { BoilerData } from '$lib/types';
 	import type { Readable } from 'svelte/store';
-	export let boilerSubscription: Readable<BoilerData>;
+	interface Props {
+		boilerSubscription: Readable<BoilerData>;
+	}
+
+	let { boilerSubscription }: Props = $props();
 
 	async function handleClick() {
 		await porca<BoilerData>(

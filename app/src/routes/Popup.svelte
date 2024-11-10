@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { popup } from '$lib/popup';
 
-	let show: boolean = false;
-	let messages: string[] = [];
+	let show: boolean = $state(false);
+	let messages: string[] = $state([]);
 
 	popup.subscribe((data) => {
 		messages = data.messages;
@@ -21,7 +21,7 @@
 			</p>
 			<button
 				class="h-20 bg-red-500 m-2 rounded-2xl text-4xl text-white border-red-800 border-2"
-				on:click={() => (show = false)}>🙆🏿</button
+				onclick={() => (show = false)}>🙆🏿</button
 			>
 		</div>
 	</div>

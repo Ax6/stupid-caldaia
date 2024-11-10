@@ -16,9 +16,13 @@
 	} from 'date-fns';
 	import { parseISODuration } from '$lib/faster-than-open-source';
 	import { popup } from '$lib/popup';
-	export let rule: Rule;
-	export let minTemp: number;
-	export let maxTemp: number;
+	interface Props {
+		rule: Rule;
+		minTemp: number;
+		maxTemp: number;
+	}
+
+	let { rule, minTemp, maxTemp }: Props = $props();
 
 	const weekDays: string[] = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 	let input: {
@@ -26,13 +30,13 @@
 		startTime: string;
 		endTime: string;
 		repeatDays: number[];
-	} = {
+	} = $state({
 		temperature: 20,
 		startTime: '18:00',
 		endTime: '01:00',
 		repeatDays: [1, 2, 3, 4, 5]
-	};
-	$: editing = rule.id === undefined;
+	});
+	let editing = $state(rule.id === undefined);
 
 	const dispatch = createEventDispatcher();
 
@@ -136,17 +140,19 @@
 		//dispatch('remove', rule.id);
 	}
 
-	$: mainColours = editing ? 'border-orange-400 bg-orange-300' : 'border-black bg-white';
-	$: inputColours = editing ? 'bg-orange-200' : 'bg-inherit';
+	let mainColours = $derived(editing ? 'border-orange-400 bg-orange-300' : 'border-black bg-white');
+	let inputColours = $derived(editing ? 'bg-orange-200' : 'bg-inherit');
 
-	$: rule.id && putDataToInput(rule);
+	$effect(() => {
+		rule.id && putDataToInput(rule);
+	});
 </script>
 
 <div class="p-2 rounded-xl border {mainColours} relative mt-4">
-	<div class="absolute w-full h-full top-0 left-0 {editing ? 'hidden' : 'block'}" />
+	<div class="absolute w-full h-full top-0 left-0 {editing ? 'hidden' : 'block'}"></div>
 	<button
 		class="absolute top-1 right-1 bg-orange-300 hover:bg-orange-400 rounded-full p-1"
-		on:click={() => (editing = true)}
+		onclick={() => (editing = true)}
 	>
 		{editing ? '' : '🖊️'}
 	</button>
@@ -179,7 +185,7 @@
 		<div class="grid grid-cols-7 place-items-center max-w-md">
 			{#each weekDays as day, i}
 				<button
-					on:click={() => toggleRepeatDay((i + 8) % 7)}
+					onclick={() => toggleRepeatDay((i + 8) % 7)}
 					class="w-11 h-11 sm:w-14 sm:h-14 rounded-full grid place-items-center color-white {input.repeatDays.indexOf(
 						(i + 8) % 7
 					) >= 0
@@ -194,17 +200,14 @@
 	{#if editing}
 		<div class="flex justify-between mt-6">
 			{#if rule.id}
-				<button class="bg-red-400 hover:bg-red-500 rounded-lg p-2 mr-2" on:click={elimina}>
+				<button class="bg-red-400 hover:bg-red-500 rounded-lg p-2 mr-2" onclick={elimina}>
 					Elimina
 				</button>
 			{/if}
-			<button
-				class="bg-green-400 hover:bg-green-500 rounded-lg p-2 flex-grow mr-2"
-				on:click={salva}
-			>
+			<button class="bg-green-400 hover:bg-green-500 rounded-lg p-2 flex-grow mr-2" onclick={salva}>
 				Salva
 			</button>
-			<button class="bg-gray-400 hover:bg-gray-500 rounded-lg p-2" on:click={annulla}>
+			<button class="bg-gray-400 hover:bg-gray-500 rounded-lg p-2" onclick={annulla}>
 				Annulla
 			</button>
 		</div>

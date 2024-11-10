@@ -8,7 +8,11 @@
 	import RegolaVeloce from './RegolaVeloce.svelte';
 	import Popup from './Popup.svelte';
 
-	export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
 
 	let boilerSubscription = madonne<BoilerData>(gql`
 		subscription {
@@ -28,7 +32,9 @@
 	`);
 	boilerSubscription.set(data);
 
-	$: console.log('Subscription update', $boilerSubscription.boiler);
+	$effect(() => {
+		console.log('Subscription update', $boilerSubscription.boiler);
+	});
 </script>
 
 <div class="w-full mb-10 p-2 relative">
@@ -37,10 +43,10 @@
 		<TemperaturaAttuale {data} />
 		<Interruttore {boilerSubscription} />
 	</div>
-	<section class="m-2"/>
+	<section class="m-2"></section>
 	<RegolaVeloce {boilerSubscription} />
-	<section class="m-2"/>
+	<section class="m-2"></section>
 	<Grafico {data} />
-	<section class="m-2"/>
+	<section class="m-2"></section>
 	<Regole {boilerSubscription} />
 </div>

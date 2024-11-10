@@ -1,7 +1,11 @@
 <script lang="ts">
 	import type { PageData, SensorData } from '$lib/types';
 	import { gql, madonne } from '$lib/porca-madonna-ql';
-	export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
 
 	let subscription = madonne<SensorData>(gql`
 		subscription {

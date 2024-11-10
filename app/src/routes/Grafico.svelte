@@ -2,34 +2,40 @@
 	import type { SensorRangeData, BoilerData, Measure } from '$lib/types';
 	import * as d3 from 'd3';
 
-	export let data: SensorRangeData & BoilerData;
+	interface Props {
+		data: SensorRangeData & BoilerData;
+	}
 
-	let hoverData: any;
-	let isTooltipHidden = true;
-	let width = 0;
+	let { data }: Props = $props();
+
+	let hoverData: any = $state();
+	let isTooltipHidden = $state(true);
+	let width = $state(0);
 	let height = 350;
 
 	const margin = { top: 0, right: 20, bottom: 20, left: 60 };
 	const innerHeight = height - margin.top - margin.bottom;
-	$: innerWidth = width - margin.left - margin.right;
+	let innerWidth = $derived(width - margin.left - margin.right);
 
-	$: xValues = data.sensorRange.map((d) => new Date(d.timestamp));
-	$: xDomain = [d3.min(xValues) || new Date(), d3.max(xValues) || new Date()];
-	$: xScale = d3.scaleLinear().domain(xDomain).range([0, innerWidth]);
+	let xValues = $derived(data.sensorRange.map((d) => new Date(d.timestamp)));
+	let xDomain = $derived([d3.min(xValues) || new Date(), d3.max(xValues) || new Date()]);
+	let xScale = $derived(d3.scaleLinear().domain(xDomain).range([0, innerWidth]));
 
-	$: xTicks = d3.range(0, 24, Math.round(1000 / width)).reduce((acc: Date[], curr: number) => {
-		const delta = xDomain[1].getTime() - 1000 * 60 * 60 * curr;
-		const closestHour = new Date(delta);
-		closestHour.setMinutes(0);
-		return closestHour.getTime() > xDomain[0].getTime() ? [...acc, closestHour] : acc;
-	}, []);
+	let xTicks = $derived(
+		d3.range(0, 24, Math.round(1000 / width)).reduce((acc: Date[], curr: number) => {
+			const delta = xDomain[1].getTime() - 1000 * 60 * 60 * curr;
+			const closestHour = new Date(delta);
+			closestHour.setMinutes(0);
+			return closestHour.getTime() > xDomain[0].getTime() ? [...acc, closestHour] : acc;
+		}, [])
+	);
 
-	$: yValues = data.sensorRange.map((d) => d.value);
-	$: yDomain = [
+	let yValues = $derived(data.sensorRange.map((d) => d.value));
+	let yDomain = $derived([
 		(d3.max(yValues) || data.boiler.maxTemp) + 5,
 		(d3.min(yValues) || data.boiler.minTemp) - 5
-	];
-	$: yScale = d3.scaleLinear().domain(yDomain).range([0, innerHeight]);
+	]);
+	let yScale = $derived(d3.scaleLinear().domain(yDomain).range([0, innerHeight]));
 
 	function hideTooltip() {
 		isTooltipHidden = true;
@@ -74,9 +80,9 @@
 			{width}
 			{height}
 			role="figure"
-			on:mousemove={(e) => showTooltip(e)}
-			on:mouseout={hideTooltip}
-			on:blur={hideTooltip}
+			onmousemove={(e) => showTooltip(e)}
+			onmouseout={hideTooltip}
+			onblur={hideTooltip}
 		>
 			<g transform={`translate(${margin.left},${margin.top})`}>
 				{#each xTicks as tickValue}
@@ -110,8 +116,8 @@
 							cx={xScale(new Date(d.timestamp))}
 							cy={yScale(d.value)}
 							class="fill-slate-700"
-							on:focus={() => showTooltip(undefined, d)}
-							on:blur={hideTooltip}
+							onfocus={() => showTooltip(undefined, d)}
+							onblur={hideTooltip}
 						/>
 					{/each}
 				</g>
