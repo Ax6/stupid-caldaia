@@ -233,7 +233,7 @@ func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
 }
 
 func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {
-	boilerUpdates := make(chan *BoilerInfo, 100) // Same buffer size as the control PubSub
+	boilerUpdates := make(chan *BoilerInfo)
 	go func() {
 		sub := c.client.Subscribe(ctx, c.Config.Name)
 		defer sub.Close()

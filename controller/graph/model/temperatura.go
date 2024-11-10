@@ -83,7 +83,7 @@ func (s *Sensor) Get(ctx context.Context, from time.Time, to time.Time) ([]*Meas
 
 func (s *Sensor) Listen(ctx context.Context) (<-chan *Measure, error) {
 	fmt.Println("Listening for updates on sensor", s.Id)
-	temperatureUpdates := make(chan *Measure, 10)
+	temperatureUpdates := make(chan *Measure)
 	go func() {
 		defer close(temperatureUpdates)
 		sub := s.Client.Subscribe(ctx, s.Id)
