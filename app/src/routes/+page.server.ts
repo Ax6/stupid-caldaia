@@ -19,11 +19,15 @@ export async function load(): Promise<PageData> {
 					isActive
 				}
 			}
-			sensor(name: "temperatura", position: "centrale") {
+			currentTemperature: sensor(name: "temperatura", position: "centrale") {
 				timestamp
 				value
 			}
-			sensorRange(name: "temperatura", position: "centrale") {
+			temperatureSeries: sensorRange(name: "temperatura", position: "centrale") {
+				timestamp
+				value
+			}
+			humiditySeries: sensorRange(name: "umidita", position: "centrale") {
 				timestamp
 				value
 			}

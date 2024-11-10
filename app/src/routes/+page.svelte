@@ -46,7 +46,14 @@
 	<section class="m-2"></section>
 	<RegolaVeloce {boilerSubscription} />
 	<section class="m-2"></section>
-	<Grafico {data} yLabel="Temperatura (°C)" title="Grafico Temperatura" />
+	<Grafico
+		data={data.temperatureSeries}
+		yLabel="Temperatura (°C)"
+		title="Grafico Temperatura"
+		height={200}
+	/>
+	<section class="m-2"></section>
+	<Grafico data={data.humiditySeries} yLabel="Umidità (%)" title="Grafico Umidità" height={200} />
 	<section class="m-2"></section>
 	<Regole {boilerSubscription} />
 </div>

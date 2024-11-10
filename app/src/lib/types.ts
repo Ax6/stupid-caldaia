@@ -5,11 +5,12 @@ export type BoilerData = {
 };
 
 export type SensorData = {
-	sensor?: Measure;
+	currentTemperature?: Measure;
 };
 
 export type SensorRangeData = {
-	sensorRange: Measure[];
+	temperatureSeries: Measure[];
+	humiditySeries: Measure[];
 };
 
 export type Boiler = {

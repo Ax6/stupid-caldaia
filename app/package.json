@@ -42,6 +42,7 @@
 		"duration-fns": "^3.0.2",
 		"graphql-request": "^6.1.0",
 		"graphql-ws": "^5.14.3",
-		"moment": "^2.30.1"
+		"moment": "^2.30.1",
+		"svelte-gestures": "^5.0.6"
 	}
 }

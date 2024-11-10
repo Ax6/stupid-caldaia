@@ -15,14 +15,14 @@
 			}
 		}
 	`);
-	subscription.set({ sensor: data.sensor });
+	subscription.set({ currentTemperature: data.currentTemperature });
 </script>
 
 <div class="pb-4 pt-2 bg-gray-300 grid place-items-center rounded-xl">
 	<p class="text-lg">Temperatura attuale</p>
 	<p class="text-5xl font-thin">
-		{#if $subscription.sensor?.value}
-			{$subscription.sensor.value.toFixed(1)} °C
+		{#if $subscription.currentTemperature?.value}
+			{$subscription.currentTemperature.value.toFixed(1)} °C
 		{:else}
 			Boh?
 		{/if}
