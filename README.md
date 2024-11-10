@@ -66,7 +66,7 @@ The front-end is pretty simple. There is a button to set a quick rule to control
 
 # Flash raspberry
 
-Insert sd card and run and bypass windows to connect USB to WSL2 (you have to build the kernel with SD and USB drivers first)
+Insert sd card and run and bypass windows to connect USB to WSL2 (you have to build the kernel with SD and USB drivers first) - or just don't use windows.
 
 ```powershell
 usbip list -l
