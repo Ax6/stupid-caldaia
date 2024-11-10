@@ -1,6 +1,6 @@
 module stupid-caldaia/lettore
 
-go 1.21.3
+go 1.23.3
 
 require (
 	github.com/parMaster/htu21 v0.0.0-20230330234619-e4f804bbad91

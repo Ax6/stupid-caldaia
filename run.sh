@@ -11,6 +11,7 @@
 # permissions. You can do this by running `chmod u+x run.sh` in the terminal.
 
 # Make tmp folder where to pipe the logs
+source ~/.zshrc
 mkdir -p tmp
 
 # Start redis
@@ -27,6 +28,19 @@ CONTROL_PID=$!
 cd ..
 } || {
 	echo "🚨 Error: Failed to start control service"
+	docker stop redis-caldaia > /dev/null
+	exit 1
+}
+echo "OK"
+
+# Start mock worker
+echo -n "🤫 Starting mock work service... "
+{
+cd lettore/mock && CONFIG_PATH=../../config.json air lettore.go > ../tmp/lettore.log &
+CONTROL_PID=$!
+cd ../..
+} || {
+	echo "🚨 Error: Failed to start worker service"
 	docker stop redis-caldaia > /dev/null
 	exit 1
 }
@@ -51,6 +65,7 @@ echo "👌 All services started"
 echo "Follow all logs: tail -f tmp/*.log"
 echo "Redis: tail -f tmp/redis.log"
 echo "Control: tail -f tmp/control.log"
+echo "Worker: tail -f tmp/lettore.log"
 echo "App: tail -f tmp/app.log"
 echo "🟢 Press Enter to stop all services..."
 read

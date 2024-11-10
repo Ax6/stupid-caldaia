@@ -1,6 +1,6 @@
 module stupid-caldaia/controller
 
-go 1.21.3
+go 1.23.3
 
 require (
 	github.com/99designs/gqlgen v0.17.41
