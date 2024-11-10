@@ -36,7 +36,10 @@
 		endTime: '01:00',
 		repeatDays: [1, 2, 3, 4, 5]
 	});
-	let editing = $state(rule.id === undefined);
+
+	let isUnsavedRule = $derived(rule.id === undefined);
+	let editMode = $state(false);
+	let editing = $derived(isUnsavedRule || editMode);
 
 	const dispatch = createEventDispatcher();
 
@@ -98,11 +101,11 @@
 
 	function annulla() {
 		if (rule.id) {
-			editing = false;
+			editMode = false;
 			putDataToInput(rule);
 		} else {
 			// If the rule is new, we just remove it
-			dispatch('remove', null);
+			dispatch('cancel', null);
 		}
 	}
 
@@ -127,7 +130,7 @@
 				}
 			}
 		`);
-		editing = false;
+		editMode = false;
 	}
 
 	async function elimina() {
@@ -137,7 +140,6 @@
 				deleteRule(id: "${rule.id}")
 			}
 		`);
-		//dispatch('remove', rule.id);
 	}
 
 	let mainColours = $derived(editing ? 'border-orange-400 bg-orange-300' : 'border-black bg-white');
@@ -152,7 +154,7 @@
 	<div class="absolute w-full h-full top-0 left-0 {editing ? 'hidden' : 'block'}"></div>
 	<button
 		class="absolute top-1 right-1 bg-orange-300 hover:bg-orange-400 rounded-full p-1"
-		onclick={() => (editing = true)}
+		onclick={() => (editMode = true)}
 	>
 		{editing ? '' : '🖊️'}
 	</button>

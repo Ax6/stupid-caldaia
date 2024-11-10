@@ -91,7 +91,7 @@
 			}}
 			onpanup={hideTooltip}
 		>
-			<svg {width} {height}>
+			<svg {width} {height} class="overflow-visible">
 				<g transform={`translate(${margin.left},${margin.top})`}>
 					{#each xTicks as tickValue}
 						<g transform={`translate(${xScale(tickValue)},0)`}>
