@@ -46,7 +46,7 @@
 	<section class="m-2"></section>
 	<RegolaVeloce {boilerSubscription} />
 	<section class="m-2"></section>
-	<Grafico {data} />
+	<Grafico {data} yLabel="Temperatura (°C)" title="Grafico Temperatura" />
 	<section class="m-2"></section>
 	<Regole {boilerSubscription} />
 </div>

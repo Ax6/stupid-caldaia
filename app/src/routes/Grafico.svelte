@@ -4,9 +4,11 @@
 
 	interface Props {
 		data: SensorRangeData & BoilerData;
+		title: string;
+		yLabel: string;
 	}
 
-	let { data }: Props = $props();
+	let { data, title, yLabel }: Props = $props();
 
 	let hoverData: any = $state();
 	let isTooltipHidden = $state(true);
@@ -22,7 +24,7 @@
 	let xScale = $derived(d3.scaleLinear().domain(xDomain).range([0, innerWidth]));
 
 	let xTicks = $derived(
-		d3.range(0, 24, Math.round(1000 / width)).reduce((acc: Date[], curr: number) => {
+		d3.range(0, 24, Math.round(1800 / width)).reduce((acc: Date[], curr: number) => {
 			const delta = xDomain[1].getTime() - 1000 * 60 * 60 * curr;
 			const closestHour = new Date(delta);
 			closestHour.setMinutes(0);
@@ -31,10 +33,7 @@
 	);
 
 	let yValues = $derived(data.sensorRange.map((d) => d.value));
-	let yDomain = $derived([
-		(d3.max(yValues) || data.boiler.maxTemp) + 5,
-		(d3.min(yValues) || data.boiler.minTemp) - 5
-	]);
+	let yDomain = $derived([(d3.max(yValues) || 1) + 0.5, (d3.min(yValues) || -1) - 0.5]);
 	let yScale = $derived(d3.scaleLinear().domain(yDomain).range([0, innerHeight]));
 
 	function hideTooltip() {
@@ -71,7 +70,7 @@
 
 <div class="w-full bg-gray-200 border border-gray-300 rounded-xl" bind:clientWidth={width}>
 	<div class="m-2">
-		<h1 class="text-4xl font-thin">Grafico Temperatura</h1>
+		<h1 class="text-4xl font-thin">{title}</h1>
 	</div>
 	{#if width === 0}
 		<p class="text-2xl m-2 font-semibold">Caricamento...</p>
@@ -127,7 +126,7 @@
 						innerHeight / 2
 					}) rotate(-90)`}
 				>
-					Temperatura (°C)
+					{yLabel}
 				</text>
 				{#if !isTooltipHidden}
 					<g>
