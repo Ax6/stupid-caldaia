@@ -7,10 +7,11 @@
 		data: Measure[];
 		title: string;
 		yLabel: string;
+		yUnit: string;
 		height?: number;
 	}
 
-	let { data, title, yLabel, height = 350 }: Props = $props();
+	let { data, title, yLabel, height = 350, yUnit }: Props = $props();
 
 	let hoverData: any = $state();
 	let isTooltipHidden = $state(true);
@@ -135,7 +136,7 @@
 							innerHeight / 2
 						}) rotate(-90)`}
 					>
-						{yLabel}
+						{yLabel} [{yUnit}]
 					</text>
 					{#if !isTooltipHidden}
 						<g>
@@ -167,7 +168,7 @@
 							>
 								<div class="bg-slate-700 rounded p-1">
 									<p class="text-white text-center">
-										{hoverData.value.toFixed(2)}°C alle {hoverData.time
+										{hoverData.value.toFixed(2)}{yUnit} alle {hoverData.time
 											.toTimeString()
 											.split(' ')[0]
 											.slice(0, -3)}
