@@ -44,13 +44,26 @@
 	});
 
 	let rule = $derived($boilerSubscription.boiler.rules);
+
+	/// Block to derive the active rule parameters
 	let regolaAttiva = $derived(
 		rule
 			.filter((interval) => interval.isActive)
 			.sort((a, b) => b.targetTemp - a.targetTemp)
-			.at(0) ?? ({} as Rule)
+			.at(0) ??
+			// Otherwise we invent a fake rule, it's just to derive some values
+			// After all, we're not going to use it
+			({
+				id: 'regola-veloce',
+				delay: 'PT0S',
+				duration: 'PT0S',
+				start: '',
+				targetTemp: 0,
+				repeatDays: [],
+				isActive: false,
+				stoppedTime: new Date()
+			} as Rule)
 	);
-
 	let ruleRealStartTime = $derived(
 		add(new Date(regolaAttiva.start), parseISODuration(regolaAttiva.delay))
 	);
@@ -58,9 +71,7 @@
 	let ruleRealEndTime = $derived(add(ruleRealStartTime, parseISODuration(regolaAttiva.duration)));
 	let timeToStart = $derived(intervalToDuration({ start: now, end: ruleRealStartTime }));
 	let hasStarted = $derived(toSeconds(timeToStart) <= 0);
-
-	let isRegolaVeloce = $derived(regolaAttiva ? regolaAttiva.id === 'regola-veloce' : false);
-	let primoTesto = $derived(isRegolaVeloce ? 'Impostato' : 'Avviato');
+	/// <-- End of the block
 
 	function changeStartDelay() {
 		delayStartDurationIndex = (delayStartDurationIndex + 1) % possibleStartDelays.length;
