@@ -29,6 +29,7 @@ export type Rule = RuleInput & {
 export type RuleInput = {
 	start: string;
 	duration: string;
+	delay: string;
 	targetTemp: number;
 	repeatDays: number[];
 };

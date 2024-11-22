@@ -13,6 +13,8 @@
 	} from 'date-fns';
 	import { it } from 'date-fns/locale';
 	import { popup } from '$lib/popup';
+	import { isZero, toSeconds, sum } from 'duration-fns';
+	import { onMount } from 'svelte';
 
 	interface Props {
 		boilerSubscription: Readable<BoilerData>;
@@ -21,9 +23,22 @@
 	let { boilerSubscription }: Props = $props();
 
 	let editing: boolean = $state(false);
-	let targetTempIndex: number = $state(2);
+	let delayStartDurationIndex: number = $state(0);
+	let targetTempIndex: number = $state(3);
 	let targetTimeIndex: number = $state(1);
-	const possibleTargetTemps: number[] = [10, 15, 18, 20, 22, 23, 24, 25];
+	const possibleStartDelays: Duration[] = [
+		{ seconds: 0 },
+		{ minutes: 15 },
+		{ minutes: 30 },
+		{ hours: 1 },
+		{ hours: 1, minutes: 30 },
+		{ hours: 2 },
+		{ hours: 3 },
+		{ hours: 4 },
+		{ hours: 6 },
+		{ hours: 8 }
+	];
+	const possibleTargetTemps: number[] = [15, 18, 20, 22, 23, 24, 25];
 	const possibleTargetTimes: Duration[] = [30, 60, 120, 240, 360, 480].map((minutes) => {
 		return { minutes: minutes % 60, hours: Math.floor(minutes / 60) };
 	});
@@ -33,23 +48,23 @@
 		rule
 			.filter((interval) => interval.isActive)
 			.sort((a, b) => b.targetTemp - a.targetTemp)
-			.at(0)
+			.at(0) ?? ({} as Rule)
 	);
-	let start = $derived(regolaAttiva ? new Date(regolaAttiva.start) : new Date());
-	let end = $derived(
-		regolaAttiva ? add(start, parseISODuration(regolaAttiva.duration)) : new Date()
+
+	let ruleRealStartTime = $derived(
+		add(new Date(regolaAttiva.start), parseISODuration(regolaAttiva.delay))
 	);
-	let fromTime = $derived(regolaAttiva ? formatRelative(start, new Date(), { locale: it }) : null);
-	let durationFromNow = $derived(
-		regolaAttiva ? intervalToDuration({ start: new Date(), end }) : {}
-	);
-	let endDuration = $derived(
-		regolaAttiva
-			? formatDuration(durationFromNow, { format: ['hours', 'minutes'], locale: it })
-			: null
-	);
+	let now = $state(new Date());
+	let ruleRealEndTime = $derived(add(ruleRealStartTime, parseISODuration(regolaAttiva.duration)));
+	let timeToStart = $derived(intervalToDuration({ start: now, end: ruleRealStartTime }));
+	let hasStarted = $derived(toSeconds(timeToStart) <= 0);
+
 	let isRegolaVeloce = $derived(regolaAttiva ? regolaAttiva.id === 'regola-veloce' : false);
 	let primoTesto = $derived(isRegolaVeloce ? 'Impostato' : 'Avviato');
+
+	function changeStartDelay() {
+		delayStartDurationIndex = (delayStartDurationIndex + 1) % possibleStartDelays.length;
+	}
 
 	function changeTargetTemp() {
 		targetTempIndex = (targetTempIndex + 1) % possibleTargetTemps.length;
@@ -78,11 +93,17 @@
 	async function set() {
 		const result = await porca<Rule>(
 			gql`
-				mutation quickTarget($targetTemp: Float!, $start: Time!, $duration: Duration!) {
+				mutation quickTarget(
+					$targetTemp: Float!
+					$start: Time!
+					$duration: Duration!
+					$delay: Duration!
+				) {
 					setRule(
 						id: "regola-veloce"
 						start: $start
 						duration: $duration
+						delay: $delay
 						targetTemp: $targetTemp
 						repeatDays: []
 					) {
@@ -93,7 +114,8 @@
 			{
 				targetTemp: possibleTargetTemps[targetTempIndex],
 				start: new Date().toISOString(),
-				duration: formatISODuration(possibleTargetTimes[targetTimeIndex])
+				duration: formatISODuration(possibleTargetTimes[targetTimeIndex]),
+				delay: formatISODuration(possibleStartDelays[delayStartDurationIndex])
 			}
 		);
 		if (result) {
@@ -102,6 +124,16 @@
 			alert('Errore');
 		}
 	}
+
+	onMount(() => {
+		const interval = setInterval(() => {
+			now = new Date();
+		}, 1000);
+
+		return () => {
+			clearInterval(interval);
+		};
+	});
 </script>
 
 {#if regolaAttiva && regolaAttiva.isActive}
@@ -112,8 +144,10 @@
 			Mantieni {regolaAttiva.targetTemp}°C
 		</p>
 		<p class="text-sm mt-2 mb-4 text-gray-300">
-			{primoTesto}
-			{fromTime}. Finisce tra {endDuration}
+			{#if !hasStarted}
+				Tra {formatDuration(timeToStart, { locale: it })}.
+			{/if}
+			Finisce {formatRelative(ruleRealEndTime, new Date(), { locale: it })}
 		</p>
 		<button class="bg-red-400 hover:bg-red-500 w-full p-3 rounded-xl" onclick={unset}
 			>Cancella</button
@@ -124,14 +158,23 @@
 		class="rounded-xl bg-orange-300 border border-orange-400 flex justify-around place-items-center flex-col lg:flex-row"
 	>
 		<div class="flex items-center text-2xl lg:text-3xl">
-			<p>Mantieni</p>
+			{#if isZero(possibleStartDelays[delayStartDurationIndex])}
+				<p>Da</p>
+			{:else}
+				<p>Tra</p>
+			{/if}
+			<button class="p-2 m-2 bg-blue-400 hover:bg-blue-500 rounded-xl" onclick={changeStartDelay}>
+				{isZero(possibleStartDelays[delayStartDurationIndex])
+					? 'adesso'
+					: formatDuration(possibleStartDelays[delayStartDurationIndex], { locale: it })}
+			</button>
 			<button class="p-2 m-2 bg-blue-400 hover:bg-blue-500 rounded-xl" onclick={changeTargetTemp}>
-				{possibleTargetTemps[targetTempIndex]}°C</button
-			>
+				{possibleTargetTemps[targetTempIndex]}°C
+			</button>
 			<p>per</p>
 			<button class="p-2 m-2 bg-blue-400 hover:bg-blue-500 rounded-xl" onclick={changeTargetTime}>
-				{formatDuration(possibleTargetTimes[targetTimeIndex], { locale: it })}</button
-			>
+				{formatDuration(possibleTargetTimes[targetTimeIndex], { locale: it })}
+			</button>
 		</div>
 		<div class="w-full flex p-2">
 			<button class="flex-grow bg-green-400 hover:bg-green-500 p-2 lg:w-64 rounded-lg" onclick={set}

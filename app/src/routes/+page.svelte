@@ -22,6 +22,7 @@
 					id
 					start
 					duration
+					delay
 					targetTemp
 					repeatDays
 					isActive

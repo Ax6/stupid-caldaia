@@ -13,6 +13,7 @@ export async function load(): Promise<PageData> {
 					id
 					start
 					duration
+					delay
 					targetTemp
 					repeatDays
 					stoppedTime

@@ -8,13 +8,22 @@ import (
 
 type DayOfWeek = time.Weekday
 
-// It should be active if now it's in the current time window and we shouldn't stop
+// It should be active if now it's in the current time window and we shouldn't
+// stop This includes a delay, hence, the rule "ShouldBeActive" also when 'now'
+// is in the delay duration and not yet the actual start.
 func (p *Rule) ShouldBeActive() bool {
 	now := time.Now()
 	wStart := p.WindowStartTime(now)
-	wEnd := wStart.Add(p.Duration)
+	wEnd := wStart.Add(p.DurationWithDelay())
 	// If it shouldn't be in a stopped state and we're inside the window
 	return now.After(wStart) && now.Before(wEnd) && !p.ShouldBeStopped()
+}
+
+// If now is in the delay window before the start
+func (p *Rule) IsBeingDelayed() bool {
+	now := time.Now()
+	wStart := p.WindowStartTime(now)
+	return now.After(wStart) && now.Before(wStart.Add(p.Delay))
 }
 
 // It should stop if the stop command was sent in the current or upcoming window and we are past that time
@@ -25,7 +34,7 @@ func (p *Rule) ShouldBeStopped() bool {
 	}
 	now := time.Now()
 	wStart := p.WindowStartTime(now)
-	wEnd := wStart.Add(p.Duration)
+	wEnd := wStart.Add(p.DurationWithDelay())
 	// Basically if
 	// 1. Last time we stopped the rule is before now
 	// 2. Last time we stopped the rule is after the window start
@@ -50,7 +59,7 @@ func (p *Rule) WindowStartTime(referenceTime time.Time) time.Time {
 
 		if daysAway == 0 {
 			// If we are 0 days away we have to check if the repeated rule has finished already, in that case we are a week away
-			if todaysStart.Add(p.Duration).Before(now) {
+			if todaysStart.Add(p.DurationWithDelay()).Before(now) {
 				daysAway = 7
 			}
 		}
@@ -63,14 +72,19 @@ func (p *Rule) WindowStartTime(referenceTime time.Time) time.Time {
 	return upcomingStart
 }
 
+// Sums delay and set duration
+func (p *Rule) DurationWithDelay() time.Duration {
+	return p.Delay + p.Duration
+}
+
 func (p *Rule) WindowStopTimeout(ctx context.Context) bool {
 	now := time.Now()
-	duration := p.WindowStartTime(now).Sub(now) + p.Duration
-	fmt.Printf("⏰ Set stop timeout of %s for interval %s\n", duration, p)
+	totalDuration := p.WindowStartTime(now).Sub(now) + p.DurationWithDelay()
+	fmt.Printf("⏰ Set stop timeout of %s for interval %s\n", totalDuration, p)
 	select {
 	case <-ctx.Done():
 		return false
-	case <-time.After(duration):
+	case <-time.After(totalDuration):
 		fmt.Printf("✋ %s Alerting stop! (After %s)\n", p.ID, time.Since(now))
 		return true
 	}

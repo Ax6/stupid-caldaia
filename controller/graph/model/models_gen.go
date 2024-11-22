@@ -21,14 +21,24 @@ type Measure struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+type Mutation struct {
+}
+
+type Query struct {
+}
+
 type Rule struct {
 	ID          string        `json:"id"`
 	Start       time.Time     `json:"start"`
 	Duration    time.Duration `json:"duration"`
+	Delay       time.Duration `json:"delay"`
 	TargetTemp  float64       `json:"targetTemp"`
 	RepeatDays  []int         `json:"repeatDays"`
 	IsActive    bool          `json:"isActive"`
 	StoppedTime *time.Time    `json:"stoppedTime,omitempty"`
+}
+
+type Subscription struct {
 }
 
 type State string

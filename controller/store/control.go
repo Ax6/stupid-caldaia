@@ -135,7 +135,7 @@ func shouldHeat(rules []*model.Rule, referenceTemperature float64) bool {
 	for _, rule := range rules {
 		// Check if the programmed interval is active
 		temperatureNotOk := referenceTemperature < rule.TargetTemp
-		shouldHeat := rule.ShouldBeActive() && temperatureNotOk
+		shouldHeat := rule.ShouldBeActive() && temperatureNotOk && !rule.IsBeingDelayed()
 		if shouldHeat {
 			return true
 		}

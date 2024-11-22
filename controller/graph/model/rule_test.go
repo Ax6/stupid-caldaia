@@ -68,27 +68,178 @@ func TestWindowStartTime(t *testing.T) {
 
 func TestShouldBeActive(t *testing.T) {
 	now := time.Now()
-	oneHourAgo := now.Add(-time.Duration(1) * time.Hour)
-	twoHours := time.Duration(2) * time.Hour
-
-	rule := &model.Rule{
-		Start:    oneHourAgo,
-		Duration: twoHours,
+	testCases := []struct {
+		name      string
+		have      *model.Rule
+		firstWant bool
+		thenWant  bool
+	}{
+		{
+			name: "rule current active",
+			have: &model.Rule{
+				Start:    now.Add(-time.Minute),
+				Duration: time.Hour,
+			},
+			firstWant: true,
+			thenWant:  false,
+		},
+		{
+			name: "rule future active",
+			have: &model.Rule{
+				Start:    now.Add(time.Hour),
+				Duration: time.Hour,
+			},
+			firstWant: false,
+			thenWant:  false,
+		},
+		{
+			name: "rule past active",
+			have: &model.Rule{
+				Start:    now.Add(-time.Hour),
+				Duration: time.Minute,
+			},
+			firstWant: false,
+			thenWant:  false,
+		},
+		{
+			name: "rule current active current delay",
+			have: &model.Rule{
+				Start:    now.Add(-time.Minute),
+				Duration: time.Hour,
+				Delay:    time.Hour,
+			},
+			firstWant: true,
+			thenWant:  false,
+		},
+		{
+			name: "rule current active past delay",
+			have: &model.Rule{
+				Start:    now.Add(-time.Hour),
+				Duration: time.Hour,
+				Delay:    time.Minute,
+			},
+			firstWant: true,
+			thenWant:  false,
+		},
 	}
 
-	if rule.ShouldBeStopped() {
-		t.Fatal("Rule should not be stopped")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			shouldBe := tc.have.ShouldBeActive()
+			if shouldBe != tc.firstWant {
+				t.Fatalf("Rule ShouldBeActive is %v while expected is %v", shouldBe, tc.firstWant)
+			}
+			tc.have.StoppedTime = &now
+			shouldBe = tc.have.ShouldBeActive()
+			if shouldBe != tc.thenWant {
+				t.Fatalf("Rule ShouldBeActive is %v while expected is %v", shouldBe, tc.firstWant)
+			}
+		})
 	}
-	if !rule.ShouldBeActive() {
-		t.Fatal("Rule should be active")
+}
+
+func TestShouldBeStopped(t *testing.T) {
+	now := time.Now()
+	testCases := []struct {
+		name      string
+		have      *model.Rule
+		firstWant bool
+		thenWant  bool
+	}{
+		{
+			name: "rule current active",
+			have: &model.Rule{
+				Start:    now.Add(-time.Minute),
+				Duration: time.Hour,
+			},
+			firstWant: false,
+			thenWant:  true,
+		},
+		{
+			name: "rule future active",
+			have: &model.Rule{
+				Start:    now.Add(time.Hour),
+				Duration: time.Hour,
+			},
+			firstWant: false,
+			thenWant:  false,
+		},
+		{
+			name: "rule past active",
+			have: &model.Rule{
+				Start:    now.Add(-time.Hour),
+				Duration: time.Minute,
+			},
+			firstWant: false,
+			thenWant:  false,
+		},
 	}
 
-	rule.StoppedTime = &now
-
-	if !rule.ShouldBeStopped() {
-		t.Fatal("Rule should be stopped")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			shouldBe := tc.have.ShouldBeStopped()
+			if shouldBe != tc.firstWant {
+				t.Fatalf("Rule ShouldBeStopped is %v while expected is %v", shouldBe, tc.firstWant)
+			}
+			tc.have.StoppedTime = &now
+			shouldBe = tc.have.ShouldBeStopped()
+			if shouldBe != tc.thenWant {
+				t.Fatalf("Rule ShouldBeStopped is %v while expected is %v", shouldBe, tc.firstWant)
+			}
+		})
 	}
-	if rule.ShouldBeActive() {
-		t.Fatal("Rule should not be active")
+}
+
+func TestIsBeingDelayed(t *testing.T) {
+	now := time.Now()
+	testCases := []struct {
+		name string
+		have *model.Rule
+		want bool
+	}{
+		{
+			name: "rule current active no delay",
+			have: &model.Rule{
+				Start:    now.Add(-time.Minute),
+				Duration: time.Hour,
+			},
+			want: false,
+		},
+		{
+			name: "rule current active current delayed",
+			have: &model.Rule{
+				Start:    now.Add(-time.Minute),
+				Duration: time.Hour,
+				Delay:    time.Hour,
+			},
+			want: true,
+		},
+		{
+			name: "rule current active past delayed",
+			have: &model.Rule{
+				Start:    now.Add(-time.Hour),
+				Duration: time.Hour,
+				Delay:    time.Minute,
+			},
+			want: false,
+		},
+		{
+			name: "rule inactive future delayed",
+			have: &model.Rule{
+				Start:    now.Add(time.Minute),
+				Duration: time.Hour,
+				Delay:    time.Hour,
+			},
+			want: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			beingDelayed := tc.have.IsBeingDelayed()
+			if beingDelayed != tc.want {
+				t.Fatalf("Rule IsBeingDelayed is %v while expected is %v", beingDelayed, tc.want)
+			}
+		})
 	}
 }
