@@ -1,4 +1,12 @@
-export type PageData = BoilerData & SensorData & SensorRangeData;
+export type PageData = LocalData & ExternalData;
+
+export type ExternalData = Weather;
+
+export type LocalData = BoilerData & SensorData & SensorRangeData;
+
+export type Weather = {
+	outsideTemperatureSeries: Measure[];
+};
 
 export type BoilerData = {
 	boiler: Boiler;

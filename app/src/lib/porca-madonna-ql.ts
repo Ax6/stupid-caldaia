@@ -7,7 +7,6 @@ import { onMount } from 'svelte';
 import { writable } from 'svelte/store';
 import type { Writable } from 'svelte/store';
 import { PUBLIC_SERVER_HOST, PUBLIC_CLIENT_HOST } from '$env/static/public';
-import { ca } from 'date-fns/locale';
 
 const SERVER_HOST = PUBLIC_SERVER_HOST || 'localhost';
 const CLIENT_HOST = PUBLIC_CLIENT_HOST || 'localhost';

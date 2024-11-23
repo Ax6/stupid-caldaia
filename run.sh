@@ -49,6 +49,9 @@ echo "OK"
 # Start the svelte front-end
 echo -n "🖥️  Starting svelte front-end... "
 {
+	# Load environment variables from .env file
+	[ ! -f .env ] || export $(grep -v '^#' .env | xargs)
+	# Start the svelte front-end (overriding the PUBLIC_SERVER_HOST and PUBLIC_CLIENT_HOST)
 	cd app && PUBLIC_SERVER_HOST=localhost PUBLIC_CLIENT_HOST=localhost npm run dev > ../tmp/app.log &
 } || {
 	echo "🚨 Error: Failed to start svelte front-end"

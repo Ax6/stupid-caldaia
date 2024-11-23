@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PageData, BoilerData } from '$lib/types';
+	import type { PageData, BoilerData, Measure } from '$lib/types';
 	import { madonne, gql } from '$lib/porca-madonna-ql';
 	import TemperaturaAttuale from './TemperaturaAttuale.svelte';
 	import Interruttore from './Interruttore.svelte';
@@ -32,10 +32,6 @@
 		}
 	`);
 	boilerSubscription.set(data);
-
-	$effect(() => {
-		console.log('Subscription update', $boilerSubscription.boiler);
-	});
 </script>
 
 <div class="w-full mb-10 p-2 relative">
@@ -52,6 +48,13 @@
 		yLabel="Temperatura"
 		yUnit="°C"
 		title="Grafico Temperatura"
+		height={200}
+	/>
+	<Grafico
+		data={data.outsideTemperatureSeries}
+		yLabel="Temperatura"
+		yUnit="°C"
+		title="Grafico Temperatura Fuori"
 		height={200}
 	/>
 	<section class="m-2"></section>
