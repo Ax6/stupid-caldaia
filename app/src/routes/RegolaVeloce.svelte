@@ -9,7 +9,8 @@
 		formatDuration,
 		formatISODuration,
 		add,
-		intervalToDuration
+		intervalToDuration,
+		isBefore
 	} from 'date-fns';
 	import { it } from 'date-fns/locale';
 	import { popup } from '$lib/popup';
@@ -64,9 +65,36 @@
 				stoppedTime: new Date()
 			} as Rule)
 	);
-	let ruleRealStartTime = $derived(
-		add(new Date(regolaAttiva.start), parseISODuration(regolaAttiva.delay))
-	);
+	let ruleRealStartTime = $derived.by(() => {
+		const originalSetTime = new Date(regolaAttiva.start);
+		const delay = parseISODuration(regolaAttiva.delay);
+		// The real start time is not just the sum of the two.
+		// If the rule is active, the start time is definetely in the past
+		// So what's the closes past time that has the same HH:MM:SS of the sum?
+		const [setHH, setMM, setSS] = [
+			originalSetTime.getHours(),
+			originalSetTime.getMinutes(),
+			originalSetTime.getSeconds()
+		];
+		const now = new Date();
+		const possibleSetTime = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate(),
+			setHH,
+			setMM,
+			setSS
+		);
+		let actualSetTime: Date;
+		if (isBefore(now, possibleSetTime)) {
+			// Actually, the rule started, but it was yesterday
+			actualSetTime = add(possibleSetTime, { days: -1 });
+		} else {
+			// The rule started today
+			actualSetTime = possibleSetTime;
+		}
+		return add(actualSetTime, delay);
+	});
 	let now = $state(new Date());
 	let ruleRealEndTime = $derived(add(ruleRealStartTime, parseISODuration(regolaAttiva.duration)));
 	let timeToStart = $derived(intervalToDuration({ start: now, end: ruleRealStartTime }));

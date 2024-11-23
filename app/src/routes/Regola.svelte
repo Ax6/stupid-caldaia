@@ -86,6 +86,8 @@
 		return {
 			start: isoStart,
 			duration: isoDuration,
+			// No delay for regular rules
+			delay: formatISODuration({ seconds: 0 }),
 			targetTemp: input.temperature,
 			repeatDays: input.repeatDays
 		};
@@ -123,6 +125,7 @@
 					${rule.id ? `id: "${rule.id}"` : ''}
 					start: "${data.start}"
 					duration: "${data.duration}"
+					delay: "${data.delay}"
 					repeatDays: [${data.repeatDays.join(', ')}]
 					targetTemp: ${data.targetTemp}
 				) {
