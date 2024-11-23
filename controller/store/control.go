@@ -41,9 +41,11 @@ func BoilerSwitchControl(ctx context.Context, boiler *model.Boiler, temperatureS
 
 		var referenceTemperature *float64
 		if averageTemperature != nil {
+			// Good we have an average temperature, we'll use it as reference
 			referenceTemperature = averageTemperature
 		} else if currentTemperature != nil {
-			referenceTemperature = nil
+			// Alright, we'll fallback to the current temperature
+			referenceTemperature = currentTemperature
 		} else {
 			// Default case will be to assume current temperature is boiler maximum
 			// This way we can be safe that with no temperature the boiler is OFF
