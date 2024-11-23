@@ -50,13 +50,6 @@
 		title="Grafico Temperatura"
 		height={200}
 	/>
-	<Grafico
-		data={data.outsideTemperatureSeries}
-		yLabel="Temperatura"
-		yUnit="°C"
-		title="Grafico Temperatura Fuori"
-		height={200}
-	/>
 	<section class="m-2"></section>
 	<Grafico
 		data={data.humiditySeries.map((d) => ({ timestamp: d.timestamp, value: d.value / 1000000 }))}

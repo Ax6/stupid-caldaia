@@ -7,6 +7,21 @@
 
 	let { data }: Props = $props();
 
+	let currentOutsideTemp = $derived.by(() => {
+		const now = new Date();
+		const temp = data.outsideTemperatureSeries.map((d) => ({
+			timestamp: new Date(d.timestamp),
+			value: d.value
+		}));
+		const closestSample = data.outsideTemperatureSeries.reduce((prev, curr) =>
+			Math.abs(new Date(curr.timestamp).getTime() - now.getTime()) <
+			Math.abs(new Date(prev.timestamp).getTime() - now.getTime())
+				? curr
+				: prev
+		);
+		return closestSample.value;
+	});
+
 	let subscription = madonne<SensorData>(gql`
 		subscription {
 			currentTemperature: sensor(name: "temperatura", position: "centrale") {
@@ -27,4 +42,5 @@
 			Boh?
 		{/if}
 	</p>
+	<p>Fuori {currentOutsideTemp.toFixed(1)} °C</p>
 </div>
