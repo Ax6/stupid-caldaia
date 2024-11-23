@@ -1,3 +1,5 @@
+include .env
+export $(shell sed 's/=.*//' .env)
 APP_IMAGE=stupid-caldaia-app
 TARGET_ADDRESS=192.168.1.123
 TARGET_MACHINE=pi@$(TARGET_ADDRESS)
@@ -21,10 +23,9 @@ run-app-target:
 
 sync:
 	git push && ssh $(TARGET_MACHINE) 'cd stupid-caldaia && git pull'
-	scp .env $(TARGET_MACHINE):stupid-caldaia/.env
 
 restart:
-	docker compose stop && docker compose rm -f && docker compose --env-file .env up -d
+	docker compose stop && docker compose rm -f && docker compose up -d
 
 restart-target:
 	ssh $(TARGET_MACHINE) 'cd stupid-caldaia && make restart'
@@ -36,7 +37,12 @@ bundle-server: build-executables transfer-executables
 	ssh $(TARGET_MACHINE) 'cd stupid-caldaia && make docker-build-worker'
 
 build-app:
-	docker buildx build --platform=linux/arm64 -t $(APP_IMAGE) -f dockerfiles/app.Dockerfile app
+	docker buildx build --platform=linux/arm64 \
+						--build-arg LATITUDE=$(LATITUDE) \
+						--build-arg LONGITUDE=$(LONGITUDE) \
+						--build-arg TIMEZONE=$(TIMEZONE) \
+						-t $(APP_IMAGE) \
+						-f dockerfiles/app.Dockerfile app
 
 transfer-app:
 	docker save $(APP_IMAGE) | bzip2 | pv | ssh $(TARGET_MACHINE) 'bunzip2 | docker load'

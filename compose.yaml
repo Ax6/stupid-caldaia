@@ -12,10 +12,6 @@ services:
       - controller
     networks:
       - stupid_network
-    env:
-      - LATITUDE=${LATITUDE}
-      - LONGITUDE=${LONGITUDE}
-      - TIMEZONE=${TIMEZONE}
 
   worker:
     restart: always
