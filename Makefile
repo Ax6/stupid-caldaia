@@ -21,9 +21,10 @@ run-app-target:
 
 sync:
 	git push && ssh $(TARGET_MACHINE) 'cd stupid-caldaia && git pull'
+	scp .env $(TARGET_MACHINE):stupid-caldaia/.env
 
 restart:
-	docker compose stop && docker compose rm -f && docker compose up -d
+	docker compose stop && docker compose rm -f && docker compose --env-file .env up -d
 
 restart-target:
 	ssh $(TARGET_MACHINE) 'cd stupid-caldaia && make restart'
