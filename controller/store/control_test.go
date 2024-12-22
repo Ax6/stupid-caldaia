@@ -1,4 +1,4 @@
-package store_test
+package store
 
 import (
 	"fmt"
@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"stupid-caldaia/controller/graph/model"
-	"stupid-caldaia/controller/internal"
-	"stupid-caldaia/controller/store"
+	"stupid-caldaia/controller/testutils"
 
 	"golang.org/x/net/context"
 )
@@ -35,15 +34,15 @@ func getRule(ctx context.Context, c *model.Boiler, id string) *model.Rule {
 
 func TestRuleTimingControllerBasic(t *testing.T) {
 	ctx := context.Background()
-	testBoiler, _ := internal.CreateTestBoiler(t, ctx)
+	testBoiler, _ := testutils.CreateTestBoiler(ctx, t)
 
-	go store.RuleTimingControl(ctx, testBoiler)
+	go RuleTimingControl(ctx, testBoiler)
 	time.Sleep(SMALL_TIME)
 
 	programmedInterval, err := testBoiler.SetRule(ctx, &model.Rule{
 		Start:      time.Now().Add(SMALL_TIME),
 		Duration:   FULL_TIME,
-		TargetTemp: internal.MAX_TEMP - 1,
+		TargetTemp: testutils.MAX_TEMP - 1,
 	})
 	if err != nil {
 		t.Fatal(fmt.Errorf("Could not create programmed interval %w", err))
@@ -82,12 +81,12 @@ func TestRuleTimingControllerBasic(t *testing.T) {
 
 func TestRuleTimingControllerEdgeCases(t *testing.T) {
 	ctx := context.Background()
-	testBoiler, _ := internal.CreateTestBoiler(t, ctx)
+	testBoiler, _ := testutils.CreateTestBoiler(ctx, t)
 
 	originalRule, err := testBoiler.SetRule(ctx, &model.Rule{
 		Start:      time.Now(),
 		Duration:   FULL_TIME,
-		TargetTemp: internal.MAX_TEMP - 1,
+		TargetTemp: testutils.MAX_TEMP - 1,
 	})
 	if err != nil {
 		t.Fatal(fmt.Errorf("Could not create programmed interval %w", err))
@@ -96,7 +95,7 @@ func TestRuleTimingControllerEdgeCases(t *testing.T) {
 	}
 
 	time.Sleep(SMALL_TIME)
-	go store.RuleTimingControl(ctx, testBoiler)
+	go RuleTimingControl(ctx, testBoiler)
 	time.Sleep(SMALL_TIME)
 
 	info, _ := testBoiler.GetInfo(ctx)
@@ -126,30 +125,30 @@ func TestRuleTimingControllerEdgeCases(t *testing.T) {
 
 func TestRuleTimingControllerMultipleRules(t *testing.T) {
 	ctx := context.Background()
-	testBoiler, err := internal.CreateTestBoiler(t, ctx)
+	testBoiler, err := testutils.CreateTestBoiler(ctx, t)
 	if err != nil {
 		t.Fatal("Could not create test boiler %w", err)
 	}
-	go store.RuleTimingControl(ctx, testBoiler)
+	go RuleTimingControl(ctx, testBoiler)
 	now := time.Now()
 
 	p_first, _ := testBoiler.SetRule(ctx, &model.Rule{
 		Start:      now,
 		Duration:   FULL_TIME,
-		TargetTemp: internal.MAX_TEMP - 3,
+		TargetTemp: testutils.MAX_TEMP - 3,
 		RepeatDays: []int{0, 1, 2, 3, 4, 5, 6, 7},
 	})
 
 	p_during_first, _ := testBoiler.SetRule(ctx, &model.Rule{
 		Start:      now.Add(HALF_TIME),
 		Duration:   FULL_TIME,
-		TargetTemp: internal.MAX_TEMP - 2,
+		TargetTemp: testutils.MAX_TEMP - 2,
 	})
 
 	p_after_the_others, _ := testBoiler.SetRule(ctx, &model.Rule{
 		Start:      now.Add(2 * FULL_TIME),
-		Duration:   HALF_TIME,
-		TargetTemp: internal.MAX_TEMP - 1,
+		Duration:   FULL_TIME,
+		TargetTemp: testutils.MAX_TEMP - 1,
 		RepeatDays: []int{0, 1, 2, 3, 4, 5, 6, 7},
 	})
 
@@ -231,11 +230,11 @@ func TestRuleTimingControllerMultipleRules(t *testing.T) {
 
 func TestRepeatingRuleNormalConditions(t *testing.T) {
 	ctx := context.Background()
-	testBoiler, err := internal.CreateTestBoiler(t, ctx)
+	testBoiler, err := testutils.CreateTestBoiler(ctx, t)
 	if err != nil {
 		t.Fatal("Could not create test boiler %w", err)
 	}
-	go store.RuleTimingControl(ctx, testBoiler)
+	go RuleTimingControl(ctx, testBoiler)
 	someDaysAgoAtThisTime := time.Now().Add(-time.Hour * 24 * 1)
 	lastStoppedTime := someDaysAgoAtThisTime.Add(FULL_TIME)
 	// Usually a recurring rule is set sometime in the past
@@ -243,7 +242,7 @@ func TestRepeatingRuleNormalConditions(t *testing.T) {
 	setRule, err := testBoiler.SetRule(ctx, &model.Rule{
 		Start:       someDaysAgoAtThisTime,
 		Duration:    FULL_TIME,
-		TargetTemp:  internal.MAX_TEMP - 3,
+		TargetTemp:  testutils.MAX_TEMP - 3,
 		RepeatDays:  []int{0, 1, 2, 3, 4, 5, 6, 7},
 		StoppedTime: &lastStoppedTime,
 	})

@@ -23,6 +23,12 @@ type Boiler struct {
 	client            *redis.Client
 	lock              sync.Mutex
 	stateUpdateCancel context.CancelFunc
+	switchSeriesKey   string
+}
+
+type SwitchSample struct {
+	Time  time.Time
+	State State
 }
 
 const (
@@ -30,8 +36,17 @@ const (
 )
 
 func NewBoiler(ctx context.Context, client *redis.Client, config BoilerConfig) (*Boiler, error) {
-	boiler := Boiler{Config: config, client: client}
+	boiler := Boiler{Config: config, client: client, switchSeriesKey: "switch:" + config.Name}
 	_, err := boiler.GetInfo(ctx)
+
+	// Check if switch state series already exists
+	exists, err := client.Exists(ctx, boiler.switchSeriesKey).Result()
+	if exists == 0 {
+		_, err := client.TSCreateWithArgs(ctx, boiler.switchSeriesKey, &redis.TSOptions{}).Result()
+		if err != nil {
+			return &boiler, err
+		}
+	}
 	return &boiler, err
 }
 
@@ -306,6 +321,23 @@ func (c *Boiler) GetInfo(ctx context.Context) (*BoilerInfo, error) {
 	}
 }
 
+func (c *Boiler) GetSwitchHistory(ctx context.Context, from time.Time, to time.Time) ([]SwitchSample, error) {
+	fromTimestamp := int(from.UnixMilli())
+	toTimestamp := int(to.UnixMilli())
+	data, err := c.client.TSRange(ctx, c.switchSeriesKey, fromTimestamp, toTimestamp).Result()
+	if err != nil {
+		return []SwitchSample{}, err
+	}
+	samples := make([]SwitchSample, 0, len(data))
+	for _, sample := range data {
+		samples = append(samples, SwitchSample{
+			Time:  time.UnixMilli(sample.Timestamp),
+			State: AllState[int(sample.Value)],
+		})
+	}
+	return samples, nil
+}
+
 func (c *Boiler) save(ctx context.Context, info *BoilerInfo) error {
 	// Serialise data
 	data, err := json.Marshal(info)
@@ -324,6 +356,16 @@ func (c *Boiler) save(ctx context.Context, info *BoilerInfo) error {
 		err = c.client.Set(ctx, c.Config.Name, data, 0).Err()
 		if err != nil {
 			return err
+		}
+		// Add mapped switch sample
+		for i, state := range AllState {
+			if info.State == state {
+				timestampNow := int(time.Now().UnixMilli())
+				err = c.client.TSAdd(ctx, c.switchSeriesKey, timestampNow, float64(i)).Err()
+				if err != nil {
+					return err
+				}
+			}
 		}
 		// Schedule a new state message. This is delayed in case we make batch updates to the state
 		go c.batchPublish(data)

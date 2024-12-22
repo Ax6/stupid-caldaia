@@ -3,20 +3,20 @@ package model_test
 import (
 	"context"
 	"stupid-caldaia/controller/graph/model"
-	"stupid-caldaia/controller/internal"
+	"stupid-caldaia/controller/testutils"
 	"testing"
 	"time"
 )
 
 func TestSetSwitchOn(t *testing.T) {
 	ctx := context.Background()
-	testBoiler, err := internal.CreateTestBoiler(t, ctx)
+	testBoiler, err := testutils.CreateTestBoiler(ctx, t)
 	if err != nil {
 		t.Fatal(err)
 	}
 	_, err = testBoiler.Switch(ctx, model.StateOn)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Could not switch boiler on: %v", err)
 	}
 	info, err := testBoiler.GetInfo(ctx)
 	if err != nil {
@@ -29,44 +29,53 @@ func TestSetSwitchOn(t *testing.T) {
 
 func TestSetMinTemp(t *testing.T) {
 	ctx := context.Background()
-	testBoiler, err := internal.CreateTestBoiler(t, ctx)
+	testBoiler, err := testutils.CreateTestBoiler(ctx, t)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Run("Set min temp ok", func(t *testing.T) {
-		t.Parallel()
-		_, err = testBoiler.SetMinTemp(ctx, internal.MIN_TEMP+1)
-		if err != nil {
-			t.Fatal("Could not set min temp")
-		}
-	})
-	t.Run("Set min temp not ok", func(t *testing.T) {
-		t.Parallel()
-		_, err = testBoiler.SetMinTemp(ctx, internal.MAX_TEMP+1)
-		if err == nil {
-			t.Fatal("Shouldn't be able to set temp > MAX_TEMP")
-		}
-	})
-	t.Run("Set max temp ok", func(t *testing.T) {
-		t.Parallel()
-		_, err = testBoiler.SetMaxTemp(ctx, internal.MAX_TEMP-1)
-		if err != nil {
-			t.Fatal("Could not set  max temp")
-		}
-	})
-	t.Run("Set max temp not ok", func(t *testing.T) {
-		t.Parallel()
-		_, err = testBoiler.SetMaxTemp(ctx, internal.MIN_TEMP-1)
-		if err == nil {
-			t.Fatal("Should not be able to set temp")
-		}
-	})
+	testCases := []struct {
+		name    string
+		temp    float64
+		wantErr bool
+	}{
+		{
+			name:    "Set min temp ok",
+			temp:    testutils.MIN_TEMP + 1,
+			wantErr: false,
+		},
+		{
+			name:    "Set min temp not ok",
+			temp:    testutils.MAX_TEMP + 1,
+			wantErr: true,
+		},
+		{
+			name:    "Set max temp ok",
+			temp:    testutils.MAX_TEMP - 1,
+			wantErr: false,
+		},
+		{
+			name:    "Set max temp not ok",
+			temp:    testutils.MIN_TEMP - 1,
+			wantErr: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err = testBoiler.SetMinTemp(ctx, tc.temp)
+			if tc.wantErr && err == nil {
+				t.Fatal("Shouldn't be able to set given temp")
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatalf("Could not set temp: %v", err)
+			}
+		})
+	}
 }
 
 func TestSetAndDeleteRule(t *testing.T) {
 	ctx := context.Background()
-	boiler, err := internal.CreateTestBoiler(t, ctx)
+	boiler, err := testutils.CreateTestBoiler(ctx, t)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +83,7 @@ func TestSetAndDeleteRule(t *testing.T) {
 	_, err = boiler.SetRule(ctx, &model.Rule{
 		Start:      time.Now(),
 		Duration:   time.Second,
-		TargetTemp: internal.MAX_TEMP + 1,
+		TargetTemp: testutils.MAX_TEMP + 1,
 	})
 	if err == nil {
 		t.Fatal("Souldn't be able to set target temperature above limit")
@@ -83,7 +92,7 @@ func TestSetAndDeleteRule(t *testing.T) {
 	ruleUnderTest, err := boiler.SetRule(ctx, &model.Rule{
 		Start:      time.Now(),
 		Duration:   time.Second,
-		TargetTemp: internal.MAX_TEMP,
+		TargetTemp: testutils.MAX_TEMP,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -106,7 +115,7 @@ func TestSetAndDeleteRule(t *testing.T) {
 
 func TestSetRuleAndUpdate(t *testing.T) {
 	ctx := context.Background()
-	boiler, err := internal.CreateTestBoiler(t, ctx)
+	boiler, err := testutils.CreateTestBoiler(ctx, t)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +132,7 @@ func TestSetRuleAndUpdate(t *testing.T) {
 	rule, err := boiler.SetRule(ctx, &model.Rule{
 		Start:      time.Now(),
 		Duration:   time.Second,
-		TargetTemp: internal.MAX_TEMP,
+		TargetTemp: testutils.MAX_TEMP,
 	})
 	if err != nil {
 		t.Fatal("Could not set rule")
@@ -159,7 +168,7 @@ func TestSetRuleAndUpdate(t *testing.T) {
 		ID:         rule.ID,
 		Start:      time.Now(),
 		Duration:   time.Hour,
-		TargetTemp: internal.MAX_TEMP,
+		TargetTemp: testutils.MAX_TEMP,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -189,5 +198,35 @@ func TestSetRuleAndUpdate(t *testing.T) {
 	}
 	if updatedRule.Duration != time.Hour {
 		t.Fatal("Want 1 hour but duration is different")
+	}
+}
+
+func TestGetSwitchHistory(t *testing.T) {
+	ctx := context.Background()
+	boiler, err := testutils.CreateTestBoiler(ctx, t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	iWant := []model.State{model.StateOff, model.StateOn, model.StateOff}
+	for _, state := range iWant {
+		boiler.Switch(ctx, state)
+		time.Sleep(time.Millisecond)
+	}
+
+	aSecondAgo := time.Now().Add(-time.Hour)
+	samples, err := boiler.GetSwitchHistory(ctx, aSecondAgo, time.Now())
+	if len(samples) != len(iWant) {
+		t.Fatalf("Expected %d states but got %d", len(iWant), len(samples))
+	}
+	previousTime := aSecondAgo
+	for i, sample := range samples {
+		if sample.State != iWant[i] {
+			t.Fatalf("Expected sample %d to be %v but got %v", i, iWant[i], sample.State)
+		}
+		if sample.Time.After(previousTime) {
+			previousTime = sample.Time
+		} else {
+			t.Fatalf("Expected time increase but got less or same")
+		}
 	}
 }

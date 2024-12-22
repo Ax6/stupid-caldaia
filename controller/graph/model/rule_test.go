@@ -1,8 +1,7 @@
-package model_test
+package model
 
 import (
 	"fmt"
-	"stupid-caldaia/controller/graph/model"
 	"testing"
 	"time"
 )
@@ -11,7 +10,7 @@ func TestWindowStartTime(t *testing.T) {
 	startTime := time.Date(2024, 1, 7, 12, 0, 0, 0, time.Local)
 	duration := time.Duration(1) * time.Hour
 
-	programmedInterval := &model.Rule{
+	programmedInterval := &Rule{
 		Start:      startTime,
 		Duration:   duration,
 		RepeatDays: []int{int(time.Monday), int(time.Thursday), int(time.Sunday)},
@@ -70,13 +69,13 @@ func TestShouldBeActive(t *testing.T) {
 	now := time.Now()
 	testCases := []struct {
 		name      string
-		have      *model.Rule
+		have      *Rule
 		firstWant bool
 		thenWant  bool
 	}{
 		{
 			name: "rule current active",
-			have: &model.Rule{
+			have: &Rule{
 				Start:    now.Add(-time.Minute),
 				Duration: time.Hour,
 			},
@@ -85,7 +84,7 @@ func TestShouldBeActive(t *testing.T) {
 		},
 		{
 			name: "rule future active",
-			have: &model.Rule{
+			have: &Rule{
 				Start:    now.Add(time.Hour),
 				Duration: time.Hour,
 			},
@@ -94,7 +93,7 @@ func TestShouldBeActive(t *testing.T) {
 		},
 		{
 			name: "rule past active",
-			have: &model.Rule{
+			have: &Rule{
 				Start:    now.Add(-time.Hour),
 				Duration: time.Minute,
 			},
@@ -103,7 +102,7 @@ func TestShouldBeActive(t *testing.T) {
 		},
 		{
 			name: "rule current active current delay",
-			have: &model.Rule{
+			have: &Rule{
 				Start:    now.Add(-time.Minute),
 				Duration: time.Hour,
 				Delay:    time.Hour,
@@ -113,7 +112,7 @@ func TestShouldBeActive(t *testing.T) {
 		},
 		{
 			name: "rule current active past delay",
-			have: &model.Rule{
+			have: &Rule{
 				Start:    now.Add(-time.Hour),
 				Duration: time.Hour,
 				Delay:    time.Minute,
@@ -142,13 +141,13 @@ func TestShouldBeStopped(t *testing.T) {
 	now := time.Now()
 	testCases := []struct {
 		name      string
-		have      *model.Rule
+		have      *Rule
 		firstWant bool
 		thenWant  bool
 	}{
 		{
 			name: "rule current active",
-			have: &model.Rule{
+			have: &Rule{
 				Start:    now.Add(-time.Minute),
 				Duration: time.Hour,
 			},
@@ -157,7 +156,7 @@ func TestShouldBeStopped(t *testing.T) {
 		},
 		{
 			name: "rule future active",
-			have: &model.Rule{
+			have: &Rule{
 				Start:    now.Add(time.Hour),
 				Duration: time.Hour,
 			},
@@ -166,7 +165,7 @@ func TestShouldBeStopped(t *testing.T) {
 		},
 		{
 			name: "rule past active",
-			have: &model.Rule{
+			have: &Rule{
 				Start:    now.Add(-time.Hour),
 				Duration: time.Minute,
 			},
@@ -194,12 +193,12 @@ func TestIsBeingDelayed(t *testing.T) {
 	now := time.Now()
 	testCases := []struct {
 		name string
-		have *model.Rule
+		have *Rule
 		want bool
 	}{
 		{
 			name: "rule current active no delay",
-			have: &model.Rule{
+			have: &Rule{
 				Start:    now.Add(-time.Minute),
 				Duration: time.Hour,
 			},
@@ -207,7 +206,7 @@ func TestIsBeingDelayed(t *testing.T) {
 		},
 		{
 			name: "rule current active current delayed",
-			have: &model.Rule{
+			have: &Rule{
 				Start:    now.Add(-time.Minute),
 				Duration: time.Hour,
 				Delay:    time.Hour,
@@ -216,7 +215,7 @@ func TestIsBeingDelayed(t *testing.T) {
 		},
 		{
 			name: "rule current active past delayed",
-			have: &model.Rule{
+			have: &Rule{
 				Start:    now.Add(-time.Hour),
 				Duration: time.Hour,
 				Delay:    time.Minute,
@@ -225,7 +224,7 @@ func TestIsBeingDelayed(t *testing.T) {
 		},
 		{
 			name: "rule inactive future delayed",
-			have: &model.Rule{
+			have: &Rule{
 				Start:    now.Add(time.Minute),
 				Duration: time.Hour,
 				Delay:    time.Hour,
