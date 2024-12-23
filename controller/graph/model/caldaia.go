@@ -19,11 +19,12 @@ type BoilerConfig struct {
 }
 
 type Boiler struct {
-	Config            BoilerConfig
-	client            *redis.Client
-	lock              sync.Mutex
-	stateUpdateCancel context.CancelFunc
-	switchSeriesKey   string
+	Config              BoilerConfig
+	client              *redis.Client
+	lock                sync.Mutex
+	stateUpdateCancel   context.CancelFunc
+	switchSeriesKey     string
+	protectionSeriesKey string
 }
 
 type SwitchSample struct {
@@ -35,14 +36,36 @@ const (
 	stateUpdateBatchingTime = 1000 // In microseconds
 )
 
+func GetStateIndex(state State) int {
+	for i, item := range AllState {
+		if item == state {
+			return i
+		}
+	}
+	return -1
+}
+
 func NewBoiler(ctx context.Context, client *redis.Client, config BoilerConfig) (*Boiler, error) {
-	boiler := Boiler{Config: config, client: client, switchSeriesKey: "switch:" + config.Name}
+	boiler := Boiler{
+		Config:              config,
+		client:              client,
+		switchSeriesKey:     "switch:" + config.Name,
+		protectionSeriesKey: "overheating:" + config.Name,
+	}
 	_, err := boiler.GetInfo(ctx)
 
 	// Check if switch state series already exists
 	exists, err := client.Exists(ctx, boiler.switchSeriesKey).Result()
 	if exists == 0 {
 		_, err := client.TSCreateWithArgs(ctx, boiler.switchSeriesKey, &redis.TSOptions{}).Result()
+		if err != nil {
+			return &boiler, err
+		}
+	}
+
+	exists, err = client.Exists(ctx, boiler.protectionSeriesKey).Result()
+	if exists == 0 {
+		_, err := client.TSCreateWithArgs(ctx, boiler.protectionSeriesKey, &redis.TSOptions{}).Result()
 		if err != nil {
 			return &boiler, err
 		}
@@ -403,15 +426,22 @@ func (c *Boiler) save(ctx context.Context, info *BoilerInfo) error {
 			return err
 		}
 		// Add mapped switch sample
-		for i, state := range AllState {
-			if info.State == state {
-				timestampNow := int(time.Now().UnixMilli())
-				err = c.client.TSAdd(ctx, c.switchSeriesKey, timestampNow, float64(i)).Err()
-				if err != nil {
-					return err
-				}
-			}
+		stateIndex := GetStateIndex(info.State)
+		timestampNow := int(time.Now().UnixMilli())
+		err = c.client.TSAdd(ctx, c.switchSeriesKey, timestampNow, float64(stateIndex)).Err()
+		if err != nil {
+			return err
 		}
+		// Add overheating status sample
+		overheating := 0.0
+		if info.IsOverheatingProtectionActive {
+			overheating = 1.0
+		}
+		err = c.client.TSAdd(ctx, c.protectionSeriesKey, timestampNow, overheating).Err()
+		if err != nil {
+			return err
+		}
+
 		// Schedule a new state message. This is delayed in case we make batch updates to the state
 		go c.batchPublish(data)
 	}

@@ -15,10 +15,19 @@ const (
 	LOCAL_REDIS = "localhost:6379"
 )
 
+func CreateTestRedis() *redis.Client {
+	return redis.NewClient(&redis.Options{Addr: LOCAL_REDIS})
+}
+
 func CreateTestBoiler(ctx context.Context, t *testing.T) (*model.Boiler, error) {
-	client := redis.NewClient(&redis.Options{Addr: LOCAL_REDIS})
 	// Make sure we clean up before creating a new boiler
-	err := client.Del(ctx, "test_boiler_"+t.Name(), "switch:"+"test_boiler_"+t.Name()).Err()
+	client := CreateTestRedis()
+	err := client.Del(
+		ctx,
+		"test_boiler_"+t.Name(),
+		"switch:"+"test_boiler_"+t.Name(),
+		"overheating:"+"test_boiler_"+t.Name(),
+	).Err()
 	if err != nil {
 		return nil, err
 	}

@@ -265,3 +265,58 @@ func TestRepeatingRuleNormalConditions(t *testing.T) {
 		t.Fatalf("Expecting rule to not be active but it is %s", rule)
 	}
 }
+
+func TestBoilerOverheatingControlBasic(t *testing.T) {
+	ctx := context.Background()
+	testRedis := testutils.CreateTestRedis()
+	testBoiler, err := testutils.CreateTestBoiler(ctx, t)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Sneaky insert sample in the past (the boiler turned on 8 tau ago)
+	switchSeriesKey := "switch:" + "test_boiler_" + t.Name()
+	stateIndex := model.GetStateIndex(model.StateOn)
+	pastTimestamp := int(time.Now().Add(-model.OH_TAU * time.Second * 8).UnixMilli())
+	err = testRedis.TSAdd(ctx, switchSeriesKey, pastTimestamp, float64(stateIndex)).Err()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check
+	info, err := testBoiler.GetInfo(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.IsOverheatingProtectionActive {
+		t.Fatal("Expected protection to be off but found active")
+	}
+	go BoilerOverheatingControl(ctx, testBoiler, time.Millisecond)
+	time.Sleep(2 * time.Millisecond)
+
+	info, err = testBoiler.GetInfo(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !info.IsOverheatingProtectionActive {
+		t.Fatal("Expected protection to be on but found disabled")
+	}
+
+	// Sneaky insert sample in the past (the boiler turned off 3 tau ago)
+	stateIndex = model.GetStateIndex(model.StateOff)
+	pastTimestamp = int(time.Now().Add(-model.OH_TAU * time.Second * 3).UnixMilli())
+	err = testRedis.TSAdd(ctx, switchSeriesKey, pastTimestamp, float64(stateIndex)).Err()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check
+	time.Sleep(2 * time.Millisecond)
+	info, err = testBoiler.GetInfo(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.IsOverheatingProtectionActive {
+		t.Fatal("Expected protection to be off but found enabled")
+	}
+}

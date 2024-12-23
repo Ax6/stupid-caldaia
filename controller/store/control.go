@@ -15,12 +15,13 @@ const (
 )
 
 // Long running function to enable/disable boiler based on overheating
-func BoilerOverheatingControl(ctx context.Context, boiler *model.Boiler) error {
-	ticker := time.Tick(OVERHEATING_CHECK_PERIOD)
+func BoilerOverheatingControl(ctx context.Context, boiler *model.Boiler, checkInterval time.Duration) error {
+	ticker := time.Tick(checkInterval)
 	for {
 		select {
 		case <-ticker:
 			currentIndex, err := model.GetCurrentOverheatingIndex(ctx, boiler)
+			log.Printf("Current index %.2f", currentIndex)
 			if err != nil {
 				return err
 			}

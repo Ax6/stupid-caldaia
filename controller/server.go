@@ -74,7 +74,7 @@ func main() {
 	// Start overheating controller
 	go func() {
 		for i := 0; i < maxRescueAttempts; i++ {
-			err := store.BoilerOverheatingControl(ctx, boiler)
+			err := store.BoilerOverheatingControl(ctx, boiler, store.OVERHEATING_CHECK_PERIOD)
 			if err != nil {
 				fmt.Println(fmt.Errorf("rule timing control failure: %w", err))
 			} else {

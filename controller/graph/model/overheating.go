@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"log"
 	"math"
 	"time"
 )
@@ -16,6 +17,7 @@ func GetCurrentOverheatingIndex(ctx context.Context, boiler *Boiler) (float64, e
 	endTime := time.Now()
 	startTime := endTime.Add(-OH_HISTORY * time.Second)
 	samples, err := boiler.GetSwitchHistory(ctx, startTime, endTime)
+	log.Printf("Switch history: %s", samples)
 	if err != nil {
 		return 0, err
 	}
