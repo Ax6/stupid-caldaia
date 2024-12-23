@@ -1,14 +1,37 @@
 package model
 
 import (
+	"context"
 	"math"
 	"time"
 )
 
 const (
-	OH_TAU = 720.0
-	OH_FS  = 1.0
+	OH_TAU     = 720.0
+	OH_FS      = 1.0
+	OH_HISTORY = 10 * OH_TAU
 )
+
+func GetCurrentOverheatingIndex(ctx context.Context, boiler *Boiler) (float64, error) {
+	endTime := time.Now()
+	startTime := endTime.Add(-OH_HISTORY * time.Second)
+	samples, err := boiler.GetSwitchHistory(ctx, startTime, endTime)
+	if err != nil {
+		return 0, err
+	}
+	if len(samples) == 0 {
+		// If we have no samples, we want at least one at the start so we can drive the index calculation
+		info, err := boiler.GetInfo(ctx)
+		if err != nil {
+			return 0, err
+		}
+		samples = append(samples, SwitchSample{
+			Time:  startTime,
+			State: info.State,
+		})
+	}
+	return calculateOverheatingIndex(samples, endTime), nil
+}
 
 // As it turns out, with just a few On/Off samples over a long time period it is
 // much more efficient to simply do the maths and precisely calculate the index

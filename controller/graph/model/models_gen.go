@@ -10,10 +10,11 @@ import (
 )
 
 type BoilerInfo struct {
-	State   State   `json:"state"`
-	MinTemp float64 `json:"minTemp"`
-	MaxTemp float64 `json:"maxTemp"`
-	Rules   []*Rule `json:"rules"`
+	State                         State   `json:"state"`
+	MinTemp                       float64 `json:"minTemp"`
+	MaxTemp                       float64 `json:"maxTemp"`
+	Rules                         []*Rule `json:"rules"`
+	IsOverheatingProtectionActive bool    `json:"isOverheatingProtectionActive"`
 }
 
 type Measure struct {

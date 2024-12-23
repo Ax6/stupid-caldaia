@@ -51,10 +51,11 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	BoilerInfo struct {
-		MaxTemp func(childComplexity int) int
-		MinTemp func(childComplexity int) int
-		Rules   func(childComplexity int) int
-		State   func(childComplexity int) int
+		IsOverheatingProtectionActive func(childComplexity int) int
+		MaxTemp                       func(childComplexity int) int
+		MinTemp                       func(childComplexity int) int
+		Rules                         func(childComplexity int) int
+		State                         func(childComplexity int) int
 	}
 
 	Measure struct {
@@ -126,6 +127,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e, 0, 0, nil}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "BoilerInfo.isOverheatingProtectionActive":
+		if e.complexity.BoilerInfo.IsOverheatingProtectionActive == nil {
+			break
+		}
+
+		return e.complexity.BoilerInfo.IsOverheatingProtectionActive(childComplexity), true
 
 	case "BoilerInfo.maxTemp":
 		if e.complexity.BoilerInfo.MaxTemp == nil {
@@ -1309,6 +1317,50 @@ func (ec *executionContext) fieldContext_BoilerInfo_rules(_ context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _BoilerInfo_isOverheatingProtectionActive(ctx context.Context, field graphql.CollectedField, obj *model.BoilerInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BoilerInfo_isOverheatingProtectionActive(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsOverheatingProtectionActive, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BoilerInfo_isOverheatingProtectionActive(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BoilerInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Measure_value(ctx context.Context, field graphql.CollectedField, obj *model.Measure) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Measure_value(ctx, field)
 	if err != nil {
@@ -1444,6 +1496,8 @@ func (ec *executionContext) fieldContext_Mutation_updateBoiler(ctx context.Conte
 				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
 			case "rules":
 				return ec.fieldContext_BoilerInfo_rules(ctx, field)
+			case "isOverheatingProtectionActive":
+				return ec.fieldContext_BoilerInfo_isOverheatingProtectionActive(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type BoilerInfo", field.Name)
 		},
@@ -1692,6 +1746,8 @@ func (ec *executionContext) fieldContext_Query_boiler(_ context.Context, field g
 				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
 			case "rules":
 				return ec.fieldContext_BoilerInfo_rules(ctx, field)
+			case "isOverheatingProtectionActive":
+				return ec.fieldContext_BoilerInfo_isOverheatingProtectionActive(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type BoilerInfo", field.Name)
 		},
@@ -2357,6 +2413,8 @@ func (ec *executionContext) fieldContext_Subscription_boiler(_ context.Context, 
 				return ec.fieldContext_BoilerInfo_maxTemp(ctx, field)
 			case "rules":
 				return ec.fieldContext_BoilerInfo_rules(ctx, field)
+			case "isOverheatingProtectionActive":
+				return ec.fieldContext_BoilerInfo_isOverheatingProtectionActive(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type BoilerInfo", field.Name)
 		},
@@ -4248,6 +4306,11 @@ func (ec *executionContext) _BoilerInfo(ctx context.Context, sel ast.SelectionSe
 			}
 		case "rules":
 			out.Values[i] = ec._BoilerInfo_rules(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isOverheatingProtectionActive":
+			out.Values[i] = ec._BoilerInfo_isOverheatingProtectionActive(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

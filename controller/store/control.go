@@ -3,10 +3,49 @@ package store
 import (
 	"context"
 	"fmt"
+	"log"
 	"stupid-caldaia/controller/graph/model"
 	"time"
 )
 
+const (
+	OVERHEATING_CHECK_PERIOD  = 15 * time.Second
+	OVERHEATING_ON_THRESHOLD  = 0.9
+	OVERHEATING_OFF_THRESHOLD = 0.2
+)
+
+// Long running function to enable/disable boiler based on overheating
+func BoilerOverheatingControl(ctx context.Context, boiler *model.Boiler) error {
+	ticker := time.Tick(OVERHEATING_CHECK_PERIOD)
+	for {
+		select {
+		case <-ticker:
+			currentIndex, err := model.GetCurrentOverheatingIndex(ctx, boiler)
+			if err != nil {
+				return err
+			}
+			info, err := boiler.GetInfo(ctx)
+			if err != nil {
+				return err
+			}
+			isProtected := info.IsOverheatingProtectionActive
+
+			if currentIndex > OVERHEATING_ON_THRESHOLD && !isProtected {
+				log.Printf("Enabling overheating protection. Recorded index above threshold.")
+				boiler.SetOverheating(ctx, true)
+			}
+
+			if currentIndex < OVERHEATING_OFF_THRESHOLD && isProtected {
+				log.Printf("Disabling overheating protection. Cooldown reached.")
+				boiler.SetOverheating(ctx, false)
+			}
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+// Long running function to control the On/Off state
 func BoilerSwitchControl(ctx context.Context, boiler *model.Boiler, temperatureSensor *model.Sensor) error {
 	temperatureListener, err := temperatureSensor.Listen(ctx)
 	if err != nil {
@@ -16,11 +55,16 @@ func BoilerSwitchControl(ctx context.Context, boiler *model.Boiler, temperatureS
 	if err != nil {
 		return err
 	}
+	overheatingListener, err := boiler.ListenOverheating(ctx)
+	if err != nil {
+		return err
+	}
 	for {
 		// Wait for updates to can affect control...
 		var currentTemperature *float64 = nil
 		select {
 		case <-ruleListener:
+		case <-overheatingListener:
 		case measure := <-temperatureListener:
 			currentTemperature = &measure.Value
 		}
@@ -39,6 +83,7 @@ func BoilerSwitchControl(ctx context.Context, boiler *model.Boiler, temperatureS
 			return fmt.Errorf("could not get Boiler info to set default reference temperature: %w", err)
 		}
 
+		// Get reference temperature
 		var referenceTemperature *float64
 		if averageTemperature != nil {
 			// Good we have an average temperature, we'll use it as reference
@@ -52,8 +97,11 @@ func BoilerSwitchControl(ctx context.Context, boiler *model.Boiler, temperatureS
 			referenceTemperature = &boilerInfo.MaxTemp
 		}
 
+		// Can heat if not protected from overheating
+		canHeat := !boilerInfo.IsOverheatingProtectionActive
+
 		// And now, actually asses if we should do it or not
-		if shouldHeat(boilerInfo.Rules, *referenceTemperature) {
+		if shouldHeat(boilerInfo.Rules, *referenceTemperature) && canHeat {
 			_, err = boiler.Switch(ctx, model.StateOn)
 		} else {
 			_, err = boiler.Switch(ctx, model.StateOff)

@@ -67,6 +67,18 @@ func (c *Boiler) Switch(ctx context.Context, targetState State) (*State, error) 
 	return &info.State, err
 }
 
+func (c *Boiler) SetOverheating(ctx context.Context, isOverheating bool) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	info, err := c.GetInfo(ctx)
+	if err != nil {
+		return err
+	}
+	info.IsOverheatingProtectionActive = isOverheating
+	err = c.save(ctx, info)
+	return err
+}
+
 func (c *Boiler) SetMinTemp(ctx context.Context, temp float64) (*float64, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -254,6 +266,39 @@ func (c *Boiler) ListenRules(ctx context.Context) (<-chan []*Rule, error) {
 		}
 	}()
 	return ruleUpdates, nil
+}
+
+func (c *Boiler) ListenOverheating(ctx context.Context) (<-chan bool, error) {
+	overheatingUpdates := make(chan bool)
+	boilerInfo, err := c.GetInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	currentFlag := boilerInfo.IsOverheatingProtectionActive
+	boilerListener, err := c.Listen(ctx)
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		defer close(overheatingUpdates)
+		for {
+			select {
+			case boilerInfo = <-boilerListener:
+				newFlag := boilerInfo.IsOverheatingProtectionActive
+				if newFlag != currentFlag {
+					select {
+					case overheatingUpdates <- newFlag:
+					case <-ctx.Done():
+						return
+					}
+				}
+				currentFlag = newFlag
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	return overheatingUpdates, nil
 }
 
 func (c *Boiler) Listen(ctx context.Context) (<-chan *BoilerInfo, error) {

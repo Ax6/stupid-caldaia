@@ -26,6 +26,7 @@ type BoilerInfo {
   minTemp: Float!
   maxTemp: Float!
   rules: [Rule!]!
+  isOverheatingProtectionActive: Boolean!
 }
 
 type Rule {

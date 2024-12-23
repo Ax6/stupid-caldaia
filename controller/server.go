@@ -71,6 +71,24 @@ func main() {
 		panic(err)
 	}()
 
+	// Start overheating controller
+	go func() {
+		for i := 0; i < maxRescueAttempts; i++ {
+			err := store.BoilerOverheatingControl(ctx, boiler)
+			if err != nil {
+				fmt.Println(fmt.Errorf("rule timing control failure: %w", err))
+			} else {
+				fmt.Println(fmt.Errorf("rule timing control terminated unexpectedly"))
+			}
+			if i < maxRescueAttempts-1 {
+				fmt.Println("Attempting rescue of service in 5 seconds")
+				time.Sleep(5 * time.Second)
+			}
+		}
+		fmt.Printf("💀 Tried %d times to rescues this service. That's bad - panic time!", maxRescueAttempts)
+		panic(err)
+	}()
+
 	// Host api
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
