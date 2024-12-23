@@ -89,6 +89,22 @@ func TestCalculateOverheatingIndex(t *testing.T) {
 			want:      0,
 			precision: 0.001,
 		},
+		{
+			name: "A bit ON then OFF",
+			have: []SwitchSample{
+				{
+					Time:  t0,
+					State: StateOn,
+				},
+				{
+					Time:  t0.Add(10 * time.Hour),
+					State: StateOff,
+				},
+			},
+			endTime:   t0.Add(10*time.Hour + OH_TAU*time.Second),
+			want:      1 - 0.632,
+			precision: 0.001,
+		},
 	}
 
 	for _, ts := range testCases {
