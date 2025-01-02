@@ -98,13 +98,13 @@ func ObserveSensor(ctx context.Context, sensors map[string]*model.Sensor) {
 
 			// Add to database
 			sensors["temperatura:centrale"].AddSample(ctx, &model.Measure{
-				Timestamp: time.Now(),
-				Value:     htu21Data.Temperature.Celsius(),
+				Time:  time.Now(),
+				Value: htu21Data.Temperature.Celsius(),
 			})
 
 			sensors["umidita:centrale"].AddSample(ctx, &model.Measure{
-				Timestamp: time.Now(),
-				Value:     float64(htu21Data.Humidity / physic.MilliRH * physic.PercentRH),
+				Time:  time.Now(),
+				Value: float64(htu21Data.Humidity / physic.MilliRH * physic.PercentRH),
 			})
 		}
 	}

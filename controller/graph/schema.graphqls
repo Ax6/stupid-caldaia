@@ -15,12 +15,12 @@ type Query {
     to: Time
   ): [Measure!]!
   switchHistory(
-    from: Time!
-    to: Time!
+    from: Time
+    to: Time
   ): [SwitchSample!]!
   overheatingProtectionHistory(
-    from: Time!
-    to: Time!
+    from: Time
+    to: Time
   ): [OverheatingProtectionSample!]!
 }
 
@@ -36,7 +36,7 @@ type OverheatingProtectionSample {
 
 type Measure {
   value: Float!
-  timestamp: Time!
+  time: Time!
 }
 
 type BoilerInfo {

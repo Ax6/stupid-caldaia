@@ -18,8 +18,8 @@ type BoilerInfo struct {
 }
 
 type Measure struct {
-	Value     float64   `json:"value"`
-	Timestamp time.Time `json:"timestamp"`
+	Value float64   `json:"value"`
+	Time  time.Time `json:"time"`
 }
 
 type Mutation struct {

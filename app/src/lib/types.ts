@@ -2,7 +2,7 @@ export type PageData = LocalData & ExternalData;
 
 export type ExternalData = Weather;
 
-export type LocalData = BoilerData & SensorData & SensorRangeData;
+export type LocalData = BoilerData & SensorData & SensorRangeData & StateHistory;
 
 export type Weather = {
 	outsideTemperatureSeries: Measure[];
@@ -11,6 +11,11 @@ export type Weather = {
 export type BoilerData = {
 	boiler: Boiler;
 };
+
+export type StateHistory = {
+	switchHistory: SwitchSample[];
+	overheatingProtectionHistory: OverheatingProtectionSample[];
+}
 
 export type SensorData = {
 	currentTemperature?: Measure;
@@ -45,6 +50,22 @@ export type RuleInput = {
 export type State = 'OFF' | 'ON';
 
 export type Measure = {
-	timestamp: string;
+	time: string;
 	value: number;
 };
+
+export type SwitchSample = {
+	time: string;
+	state: string;
+}
+
+export type OverheatingProtectionSample = {
+	time: string;
+	isActive: boolean;
+}
+
+export type ColorBand = {
+	from: string;
+	to: string;
+	color: string;
+}

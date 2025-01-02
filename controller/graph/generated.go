@@ -59,8 +59,8 @@ type ComplexityRoot struct {
 	}
 
 	Measure struct {
-		Timestamp func(childComplexity int) int
-		Value     func(childComplexity int) int
+		Time  func(childComplexity int) int
+		Value func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -77,10 +77,10 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Boiler                       func(childComplexity int) int
-		OverheatingProtectionHistory func(childComplexity int, from time.Time, to time.Time) int
+		OverheatingProtectionHistory func(childComplexity int, from *time.Time, to *time.Time) int
 		Sensor                       func(childComplexity int, name string, position string) int
 		SensorRange                  func(childComplexity int, name string, position string, from *time.Time, to *time.Time) int
-		SwitchHistory                func(childComplexity int, from time.Time, to time.Time) int
+		SwitchHistory                func(childComplexity int, from *time.Time, to *time.Time) int
 	}
 
 	Rule struct {
@@ -115,8 +115,8 @@ type QueryResolver interface {
 	Boiler(ctx context.Context) (*model.BoilerInfo, error)
 	Sensor(ctx context.Context, name string, position string) (*model.Measure, error)
 	SensorRange(ctx context.Context, name string, position string, from *time.Time, to *time.Time) ([]*model.Measure, error)
-	SwitchHistory(ctx context.Context, from time.Time, to time.Time) ([]*model.SwitchSample, error)
-	OverheatingProtectionHistory(ctx context.Context, from time.Time, to time.Time) ([]*model.OverheatingProtectionSample, error)
+	SwitchHistory(ctx context.Context, from *time.Time, to *time.Time) ([]*model.SwitchSample, error)
+	OverheatingProtectionHistory(ctx context.Context, from *time.Time, to *time.Time) ([]*model.OverheatingProtectionSample, error)
 }
 type SubscriptionResolver interface {
 	Boiler(ctx context.Context) (<-chan *model.BoilerInfo, error)
@@ -177,12 +177,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.BoilerInfo.State(childComplexity), true
 
-	case "Measure.timestamp":
-		if e.complexity.Measure.Timestamp == nil {
+	case "Measure.time":
+		if e.complexity.Measure.Time == nil {
 			break
 		}
 
-		return e.complexity.Measure.Timestamp(childComplexity), true
+		return e.complexity.Measure.Time(childComplexity), true
 
 	case "Measure.value":
 		if e.complexity.Measure.Value == nil {
@@ -270,7 +270,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.OverheatingProtectionHistory(childComplexity, args["from"].(time.Time), args["to"].(time.Time)), true
+		return e.complexity.Query.OverheatingProtectionHistory(childComplexity, args["from"].(*time.Time), args["to"].(*time.Time)), true
 
 	case "Query.sensor":
 		if e.complexity.Query.Sensor == nil {
@@ -306,7 +306,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.SwitchHistory(childComplexity, args["from"].(time.Time), args["to"].(time.Time)), true
+		return e.complexity.Query.SwitchHistory(childComplexity, args["from"].(*time.Time), args["to"].(*time.Time)), true
 
 	case "Rule.delay":
 		if e.complexity.Rule.Delay == nil {
@@ -904,44 +904,44 @@ func (ec *executionContext) field_Query_overheatingProtectionHistory_args(ctx co
 func (ec *executionContext) field_Query_overheatingProtectionHistory_argsFrom(
 	ctx context.Context,
 	rawArgs map[string]interface{},
-) (time.Time, error) {
+) (*time.Time, error) {
 	// We won't call the directive if the argument is null.
 	// Set call_argument_directives_with_null to true to call directives
 	// even if the argument is null.
 	_, ok := rawArgs["from"]
 	if !ok {
-		var zeroVal time.Time
+		var zeroVal *time.Time
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
 	if tmp, ok := rawArgs["from"]; ok {
-		return ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+		return ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
 	}
 
-	var zeroVal time.Time
+	var zeroVal *time.Time
 	return zeroVal, nil
 }
 
 func (ec *executionContext) field_Query_overheatingProtectionHistory_argsTo(
 	ctx context.Context,
 	rawArgs map[string]interface{},
-) (time.Time, error) {
+) (*time.Time, error) {
 	// We won't call the directive if the argument is null.
 	// Set call_argument_directives_with_null to true to call directives
 	// even if the argument is null.
 	_, ok := rawArgs["to"]
 	if !ok {
-		var zeroVal time.Time
+		var zeroVal *time.Time
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
 	if tmp, ok := rawArgs["to"]; ok {
-		return ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+		return ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
 	}
 
-	var zeroVal time.Time
+	var zeroVal *time.Time
 	return zeroVal, nil
 }
 
@@ -1135,44 +1135,44 @@ func (ec *executionContext) field_Query_switchHistory_args(ctx context.Context, 
 func (ec *executionContext) field_Query_switchHistory_argsFrom(
 	ctx context.Context,
 	rawArgs map[string]interface{},
-) (time.Time, error) {
+) (*time.Time, error) {
 	// We won't call the directive if the argument is null.
 	// Set call_argument_directives_with_null to true to call directives
 	// even if the argument is null.
 	_, ok := rawArgs["from"]
 	if !ok {
-		var zeroVal time.Time
+		var zeroVal *time.Time
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
 	if tmp, ok := rawArgs["from"]; ok {
-		return ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+		return ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
 	}
 
-	var zeroVal time.Time
+	var zeroVal *time.Time
 	return zeroVal, nil
 }
 
 func (ec *executionContext) field_Query_switchHistory_argsTo(
 	ctx context.Context,
 	rawArgs map[string]interface{},
-) (time.Time, error) {
+) (*time.Time, error) {
 	// We won't call the directive if the argument is null.
 	// Set call_argument_directives_with_null to true to call directives
 	// even if the argument is null.
 	_, ok := rawArgs["to"]
 	if !ok {
-		var zeroVal time.Time
+		var zeroVal *time.Time
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
 	if tmp, ok := rawArgs["to"]; ok {
-		return ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+		return ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
 	}
 
-	var zeroVal time.Time
+	var zeroVal *time.Time
 	return zeroVal, nil
 }
 
@@ -1589,8 +1589,8 @@ func (ec *executionContext) fieldContext_Measure_value(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Measure_timestamp(ctx context.Context, field graphql.CollectedField, obj *model.Measure) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Measure_timestamp(ctx, field)
+func (ec *executionContext) _Measure_time(ctx context.Context, field graphql.CollectedField, obj *model.Measure) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Measure_time(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1603,7 +1603,7 @@ func (ec *executionContext) _Measure_timestamp(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Timestamp, nil
+		return obj.Time, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1620,7 +1620,7 @@ func (ec *executionContext) _Measure_timestamp(ctx context.Context, field graphq
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Measure_timestamp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Measure_time(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Measure",
 		Field:      field,
@@ -2065,8 +2065,8 @@ func (ec *executionContext) fieldContext_Query_sensor(ctx context.Context, field
 			switch field.Name {
 			case "value":
 				return ec.fieldContext_Measure_value(ctx, field)
-			case "timestamp":
-				return ec.fieldContext_Measure_timestamp(ctx, field)
+			case "time":
+				return ec.fieldContext_Measure_time(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Measure", field.Name)
 		},
@@ -2126,8 +2126,8 @@ func (ec *executionContext) fieldContext_Query_sensorRange(ctx context.Context, 
 			switch field.Name {
 			case "value":
 				return ec.fieldContext_Measure_value(ctx, field)
-			case "timestamp":
-				return ec.fieldContext_Measure_timestamp(ctx, field)
+			case "time":
+				return ec.fieldContext_Measure_time(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Measure", field.Name)
 		},
@@ -2160,7 +2160,7 @@ func (ec *executionContext) _Query_switchHistory(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().SwitchHistory(rctx, fc.Args["from"].(time.Time), fc.Args["to"].(time.Time))
+		return ec.resolvers.Query().SwitchHistory(rctx, fc.Args["from"].(*time.Time), fc.Args["to"].(*time.Time))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2221,7 +2221,7 @@ func (ec *executionContext) _Query_overheatingProtectionHistory(ctx context.Cont
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().OverheatingProtectionHistory(rctx, fc.Args["from"].(time.Time), fc.Args["to"].(time.Time))
+		return ec.resolvers.Query().OverheatingProtectionHistory(rctx, fc.Args["from"].(*time.Time), fc.Args["to"].(*time.Time))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2871,8 +2871,8 @@ func (ec *executionContext) fieldContext_Subscription_sensor(ctx context.Context
 			switch field.Name {
 			case "value":
 				return ec.fieldContext_Measure_value(ctx, field)
-			case "timestamp":
-				return ec.fieldContext_Measure_timestamp(ctx, field)
+			case "time":
+				return ec.fieldContext_Measure_time(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Measure", field.Name)
 		},
@@ -4835,8 +4835,8 @@ func (ec *executionContext) _Measure(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "timestamp":
-			out.Values[i] = ec._Measure_timestamp(ctx, field, obj)
+		case "time":
+			out.Values[i] = ec._Measure_time(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

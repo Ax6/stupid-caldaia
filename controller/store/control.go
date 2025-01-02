@@ -21,7 +21,6 @@ func BoilerOverheatingControl(ctx context.Context, boiler *model.Boiler, checkIn
 		select {
 		case <-ticker:
 			currentIndex, err := model.GetCurrentOverheatingIndex(ctx, boiler)
-			log.Printf("Current index %.2f", currentIndex)
 			if err != nil {
 				return err
 			}

@@ -6,7 +6,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"stupid-caldaia/controller/graph/model"
 	"time"
@@ -99,13 +98,29 @@ func (r *queryResolver) SensorRange(ctx context.Context, name string, position s
 }
 
 // SwitchHistory is the resolver for the switchHistory field.
-func (r *queryResolver) SwitchHistory(ctx context.Context, from time.Time, to time.Time) ([]*model.SwitchSample, error) {
-	return r.Resolver.Boiler.GetSwitchHistory(ctx, from, to)
+func (r *queryResolver) SwitchHistory(ctx context.Context, from *time.Time, to *time.Time) ([]*model.SwitchSample, error) {
+	defaultFrom := time.Now().Add(-24 * time.Hour)
+	defaultTo := time.Now()
+	if from == nil {
+		from = &defaultFrom
+	}
+	if to == nil {
+		to = &defaultTo
+	}
+	return r.Resolver.Boiler.GetSwitchHistory(ctx, *from, *to)
 }
 
 // OverheatingProtectionHistory is the resolver for the overheatingProtectionHistory field.
-func (r *queryResolver) OverheatingProtectionHistory(ctx context.Context, from time.Time, to time.Time) ([]*model.OverheatingProtectionSample, error) {
-	panic(fmt.Errorf("not implemented: OverheatingProtectionHistory - overheatingProtectionHistory"))
+func (r *queryResolver) OverheatingProtectionHistory(ctx context.Context, from *time.Time, to *time.Time) ([]*model.OverheatingProtectionSample, error) {
+	defaultFrom := time.Now().Add(-24 * time.Hour)
+	defaultTo := time.Now()
+	if from == nil {
+		from = &defaultFrom
+	}
+	if to == nil {
+		to = &defaultTo
+	}
+	return r.Resolver.Boiler.GetOverheatingProtectionHistory(ctx, *from, *to)
 }
 
 // Boiler is the resolver for the boiler field.

@@ -385,20 +385,37 @@ func (c *Boiler) GetInfo(ctx context.Context) (*BoilerInfo, error) {
 }
 
 func (c *Boiler) GetSwitchHistory(ctx context.Context, from time.Time, to time.Time) ([]*SwitchSample, error) {
-	fromTimestamp := int(from.UnixMilli())
-	toTimestamp := int(to.UnixMilli())
-	data, err := c.client.TSRange(ctx, c.switchSeriesKey, fromTimestamp, toTimestamp).Result()
-	if err != nil {
-		return []*SwitchSample{}, err
-	}
-	samples := make([]*SwitchSample, 0, len(data))
-	for _, sample := range data {
-		samples = append(samples, &SwitchSample{
+	parseSwitchSample := func(sample redis.TSTimestampValue) SwitchSample {
+		return SwitchSample{
 			Time:  time.UnixMilli(sample.Timestamp),
 			State: AllState[int(sample.Value)],
-		})
+		}
 	}
-	return samples, nil
+	defaultSwitchSample := SwitchSample{
+		Time:  from,
+		State: StateUnknown,
+	}
+	useDefault := true
+	return readTimeSeries(ctx, c.client, c.switchSeriesKey, from, to, parseSwitchSample, useDefault, defaultSwitchSample)
+}
+
+func (c *Boiler) GetOverheatingProtectionHistory(ctx context.Context, from time.Time, to time.Time) ([]*OverheatingProtectionSample, error) {
+	parseOverheatingSample := func(sample redis.TSTimestampValue) OverheatingProtectionSample {
+		isActive := false
+		if sample.Value == 1 {
+			isActive = true
+		}
+		return OverheatingProtectionSample{
+			Time:     time.UnixMilli(sample.Timestamp),
+			IsActive: isActive,
+		}
+	}
+	defaultOverheatingSample := OverheatingProtectionSample{
+		Time:     from,
+		IsActive: false,
+	}
+	useDefault := true
+	return readTimeSeries(ctx, c.client, c.protectionSeriesKey, from, to, parseOverheatingSample, useDefault, defaultOverheatingSample)
 }
 
 func (c *Boiler) save(ctx context.Context, info *BoilerInfo) error {
@@ -455,4 +472,45 @@ func (c *Boiler) batchPublish(data []byte) error {
 	case <-time.After(time.Microsecond * stateUpdateBatchingTime):
 		return c.client.Publish(cancelContext, c.Config.Name, data).Err()
 	}
+}
+
+func readTimeSeries[T any](ctx context.Context, client *redis.Client, key string, from time.Time, to time.Time, parse func(v redis.TSTimestampValue) T, useInitSample bool, defaultInitSample T) ([]*T, error) {
+	fromTimestamp := int(from.UnixMilli())
+	toTimestamp := int(to.UnixMilli())
+	data, err := client.TSRange(ctx, key, fromTimestamp, toTimestamp).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	samplesCount := len(data)
+	extraCount := 0
+	var initSample T
+	if useInitSample {
+		// Establish initSample
+		extraCount = 1
+		optLimitToLast := &redis.TSRevRangeOptions{Count: 1}
+		backData, err := client.TSRevRangeWithArgs(ctx, key, 0, fromTimestamp, optLimitToLast).Result()
+		if err != nil {
+			return nil, err
+		}
+		switch len(backData) {
+		case 1:
+			initSample = parse(backData[0])
+		case 0:
+			initSample = defaultInitSample
+		default:
+			return nil, fmt.Errorf("Unexpected redis behaviour, wanted 0 or 1 element got %d", len(backData))
+		}
+	}
+
+	samples := make([]*T, samplesCount+extraCount)
+	if useInitSample {
+		samples[0] = &initSample
+	}
+	for i, redisSample := range data {
+		sample := parse(redisSample)
+		samples[i+extraCount] = &sample
+	}
+
+	return samples, nil
 }

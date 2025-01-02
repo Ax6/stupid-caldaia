@@ -51,12 +51,12 @@ func sendNextSampleForTime(ctx context.Context, sensors map[string]*model.Sensor
 	humiditySample := humiditySeries[seriesIndex]
 
 	sensors["umidita:centrale"].AddSample(ctx, &model.Measure{
-		Value:     humiditySample,
-		Timestamp: time,
+		Value: humiditySample,
+		Time:  time,
 	})
 	sensors["temperatura:centrale"].AddSample(ctx, &model.Measure{
-		Value:     temperatureSample,
-		Timestamp: time,
+		Value: temperatureSample,
+		Time:  time,
 	})
 
 	seriesIndex++

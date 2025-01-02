@@ -10,12 +10,12 @@
 	let currentOutsideTemp = $derived.by(() => {
 		const now = new Date();
 		const temp = data.outsideTemperatureSeries.map((d) => ({
-			timestamp: new Date(d.timestamp),
+			time: new Date(d.time),
 			value: d.value
 		}));
 		const closestSample = data.outsideTemperatureSeries.reduce((prev, curr) =>
-			Math.abs(new Date(curr.timestamp).getTime() - now.getTime()) <
-			Math.abs(new Date(prev.timestamp).getTime() - now.getTime())
+			Math.abs(new Date(curr.time).getTime() - now.getTime()) <
+			Math.abs(new Date(prev.time).getTime() - now.getTime())
 				? curr
 				: prev
 		);
@@ -26,7 +26,7 @@
 		subscription {
 			currentTemperature: sensor(name: "temperatura", position: "centrale") {
 				value
-				timestamp
+				time
 			}
 		}
 	`);

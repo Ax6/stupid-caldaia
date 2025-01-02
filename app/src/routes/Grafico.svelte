@@ -1,17 +1,18 @@
 <script lang="ts">
-	import type { Measure } from '$lib/types';
-	import { pan, type GestureCustomEvent } from 'svelte-gestures';
+	import type { Measure, ColorBand } from '$lib/types';
+	import { pan } from 'svelte-gestures';
 	import * as d3 from 'd3';
 
 	interface Props {
 		data: Measure[];
+		bands?: ColorBand[];
 		title: string;
 		yLabel: string;
 		yUnit: string;
 		height?: number;
 	}
 
-	let { data, title, yLabel, height = 350, yUnit }: Props = $props();
+	let { data, title, yLabel, height = 350, yUnit, bands = [] }: Props = $props();
 
 	let hoverData: any = $state();
 	let isTooltipHidden = $state(true);
@@ -21,7 +22,7 @@
 	const innerHeight = height - margin.top - margin.bottom;
 	let innerWidth = $derived(width - margin.left - margin.right);
 
-	let xValues = $derived(data.map((d) => new Date(d.timestamp)));
+	let xValues = $derived(data.map((d) => new Date(d.time)));
 	let xDomain = $derived([d3.min(xValues) || new Date(), d3.max(xValues) || new Date()]);
 	let xScale = $derived(d3.scaleLinear().domain(xDomain).range([0, innerWidth]));
 
@@ -48,11 +49,11 @@
 		const d1 = data[i];
 		if (!d0 || !d1)
 			return {
-				timestamp: '0',
+				time: '0',
 				value: 0
 			} as Measure;
-		const distanceToPrevious = x0.getTime() - new Date(d0.timestamp).getTime();
-		const distanceToFollowing = new Date(d1.timestamp).getTime() - x0.getTime();
+		const distanceToPrevious = x0.getTime() - new Date(d0.time).getTime();
+		const distanceToFollowing = new Date(d1.time).getTime() - x0.getTime();
 		return distanceToPrevious > distanceToFollowing ? d1 : d0;
 	}
 
@@ -63,11 +64,21 @@
 	function showTooltip(d: Measure) {
 		hoverData = {
 			value: d.value,
-			time: new Date(d.timestamp),
-			x: xScale(new Date(d.timestamp)),
+			time: new Date(d.time),
+			x: xScale(new Date(d.time)),
 			y: yScale(d.value)
 		};
 		isTooltipHidden = false;
+	}
+
+	function clipX(d: Date) {
+		if (d > xDomain[1]) {
+			return xDomain[1];
+		} else if (d < xDomain[0]) {
+			return xDomain[0];
+		} else {
+			return d;
+		}
 	}
 </script>
 
@@ -94,6 +105,16 @@
 		>
 			<svg {width} {height} class="overflow-visible">
 				<g transform={`translate(${margin.left},${margin.top})`}>
+					{#each bands as band}
+						<rect
+							x={xScale(clipX(new Date(band.from)))}
+							y={yScale(yDomain[0])}
+							width={xScale(clipX(new Date(band.to))) - xScale(clipX(new Date(band.from)))}
+							height={yScale(yDomain[1]) - yScale(yDomain[0])}
+							fill={band.color}
+							opacity="0.2"
+						/>
+					{/each}
 					{#each xTicks as tickValue}
 						<g transform={`translate(${xScale(tickValue)},0)`}>
 							<line y2={innerHeight} class="stroke-gray-400" />
@@ -122,7 +143,7 @@
 								role="button"
 								tabindex="0"
 								r="1"
-								cx={xScale(new Date(d.timestamp))}
+								cx={xScale(new Date(d.time))}
 								cy={yScale(d.value)}
 								class="fill-slate-700"
 								onfocus={() => showTooltip(d)}

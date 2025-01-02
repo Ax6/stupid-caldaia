@@ -21,16 +21,24 @@ async function getLocalData(): Promise<LocalData> {
 				}
 			}
 			currentTemperature: sensor(name: "temperatura", position: "centrale") {
-				timestamp
+				time
 				value
 			}
 			temperatureSeries: sensorRange(name: "temperatura", position: "centrale") {
-				timestamp
+				time
 				value
 			}
 			humiditySeries: sensorRange(name: "umidita", position: "centrale") {
-				timestamp
+				time
 				value
+			}
+			switchHistory: switchHistory {
+				time
+				state
+			}
+			overheatingProtectionHistory: overheatingProtectionHistory{
+				time
+				isActive
 			}
 		}
 	`);
@@ -41,7 +49,7 @@ async function getExternalData(): Promise<ExternalData> {
 	const outsideTemperature = weatherData.map(
 		(sample) =>
 			({
-				timestamp: sample.time.toISOString(),
+				time: sample.time.toISOString(),
 				value: sample.temperature2m
 			}) as Measure
 	);

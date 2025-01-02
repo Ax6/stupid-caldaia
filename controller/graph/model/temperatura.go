@@ -122,7 +122,7 @@ func (s *Sensor) Listen(ctx context.Context) (<-chan *Measure, error) {
 
 func (s *Sensor) AddSample(ctx context.Context, sample *Measure) error {
 	// Add sample to Redis
-	_, err := s.Client.TSAdd(ctx, s.Id, int(sample.Timestamp.UnixMilli()), sample.Value).Result()
+	_, err := s.Client.TSAdd(ctx, s.Id, int(sample.Time.UnixMilli()), sample.Value).Result()
 	if err != nil {
 		return err
 	}
