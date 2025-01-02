@@ -6,6 +6,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"stupid-caldaia/controller/graph/model"
 	"time"
@@ -95,6 +96,16 @@ func (r *queryResolver) SensorRange(ctx context.Context, name string, position s
 		to = &defaultTo
 	}
 	return r.Resolver.Sensors[name+":"+position].Get(ctx, *from, *to)
+}
+
+// SwitchHistory is the resolver for the switchHistory field.
+func (r *queryResolver) SwitchHistory(ctx context.Context, from time.Time, to time.Time) ([]*model.SwitchSample, error) {
+	return r.Resolver.Boiler.GetSwitchHistory(ctx, from, to)
+}
+
+// OverheatingProtectionHistory is the resolver for the overheatingProtectionHistory field.
+func (r *queryResolver) OverheatingProtectionHistory(ctx context.Context, from time.Time, to time.Time) ([]*model.OverheatingProtectionSample, error) {
+	panic(fmt.Errorf("not implemented: OverheatingProtectionHistory - overheatingProtectionHistory"))
 }
 
 // Boiler is the resolver for the boiler field.

@@ -70,10 +70,17 @@ type ComplexityRoot struct {
 		UpdateBoiler func(childComplexity int, state *model.State, minTemp *float64, maxTemp *float64) int
 	}
 
+	OverheatingProtectionSample struct {
+		IsActive func(childComplexity int) int
+		Time     func(childComplexity int) int
+	}
+
 	Query struct {
-		Boiler      func(childComplexity int) int
-		Sensor      func(childComplexity int, name string, position string) int
-		SensorRange func(childComplexity int, name string, position string, from *time.Time, to *time.Time) int
+		Boiler                       func(childComplexity int) int
+		OverheatingProtectionHistory func(childComplexity int, from time.Time, to time.Time) int
+		Sensor                       func(childComplexity int, name string, position string) int
+		SensorRange                  func(childComplexity int, name string, position string, from *time.Time, to *time.Time) int
+		SwitchHistory                func(childComplexity int, from time.Time, to time.Time) int
 	}
 
 	Rule struct {
@@ -91,6 +98,11 @@ type ComplexityRoot struct {
 		Boiler func(childComplexity int) int
 		Sensor func(childComplexity int, name string, position string) int
 	}
+
+	SwitchSample struct {
+		State func(childComplexity int) int
+		Time  func(childComplexity int) int
+	}
 }
 
 type MutationResolver interface {
@@ -103,6 +115,8 @@ type QueryResolver interface {
 	Boiler(ctx context.Context) (*model.BoilerInfo, error)
 	Sensor(ctx context.Context, name string, position string) (*model.Measure, error)
 	SensorRange(ctx context.Context, name string, position string, from *time.Time, to *time.Time) ([]*model.Measure, error)
+	SwitchHistory(ctx context.Context, from time.Time, to time.Time) ([]*model.SwitchSample, error)
+	OverheatingProtectionHistory(ctx context.Context, from time.Time, to time.Time) ([]*model.OverheatingProtectionSample, error)
 }
 type SubscriptionResolver interface {
 	Boiler(ctx context.Context) (<-chan *model.BoilerInfo, error)
@@ -225,12 +239,38 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpdateBoiler(childComplexity, args["state"].(*model.State), args["minTemp"].(*float64), args["maxTemp"].(*float64)), true
 
+	case "OverheatingProtectionSample.isActive":
+		if e.complexity.OverheatingProtectionSample.IsActive == nil {
+			break
+		}
+
+		return e.complexity.OverheatingProtectionSample.IsActive(childComplexity), true
+
+	case "OverheatingProtectionSample.time":
+		if e.complexity.OverheatingProtectionSample.Time == nil {
+			break
+		}
+
+		return e.complexity.OverheatingProtectionSample.Time(childComplexity), true
+
 	case "Query.boiler":
 		if e.complexity.Query.Boiler == nil {
 			break
 		}
 
 		return e.complexity.Query.Boiler(childComplexity), true
+
+	case "Query.overheatingProtectionHistory":
+		if e.complexity.Query.OverheatingProtectionHistory == nil {
+			break
+		}
+
+		args, err := ec.field_Query_overheatingProtectionHistory_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.OverheatingProtectionHistory(childComplexity, args["from"].(time.Time), args["to"].(time.Time)), true
 
 	case "Query.sensor":
 		if e.complexity.Query.Sensor == nil {
@@ -255,6 +295,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.SensorRange(childComplexity, args["name"].(string), args["position"].(string), args["from"].(*time.Time), args["to"].(*time.Time)), true
+
+	case "Query.switchHistory":
+		if e.complexity.Query.SwitchHistory == nil {
+			break
+		}
+
+		args, err := ec.field_Query_switchHistory_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SwitchHistory(childComplexity, args["from"].(time.Time), args["to"].(time.Time)), true
 
 	case "Rule.delay":
 		if e.complexity.Rule.Delay == nil {
@@ -330,6 +382,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Subscription.Sensor(childComplexity, args["name"].(string), args["position"].(string)), true
+
+	case "SwitchSample.state":
+		if e.complexity.SwitchSample.State == nil {
+			break
+		}
+
+		return e.complexity.SwitchSample.State(childComplexity), true
+
+	case "SwitchSample.time":
+		if e.complexity.SwitchSample.Time == nil {
+			break
+		}
+
+		return e.complexity.SwitchSample.Time(childComplexity), true
 
 	}
 	return 0, false
@@ -820,6 +886,65 @@ func (ec *executionContext) field_Query___type_argsName(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Query_overheatingProtectionHistory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Query_overheatingProtectionHistory_argsFrom(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["from"] = arg0
+	arg1, err := ec.field_Query_overheatingProtectionHistory_argsTo(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["to"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Query_overheatingProtectionHistory_argsFrom(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (time.Time, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["from"]
+	if !ok {
+		var zeroVal time.Time
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
+	if tmp, ok := rawArgs["from"]; ok {
+		return ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+	}
+
+	var zeroVal time.Time
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_overheatingProtectionHistory_argsTo(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (time.Time, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["to"]
+	if !ok {
+		var zeroVal time.Time
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+	if tmp, ok := rawArgs["to"]; ok {
+		return ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+	}
+
+	var zeroVal time.Time
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query_sensorRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -989,6 +1114,65 @@ func (ec *executionContext) field_Query_sensor_argsPosition(
 	}
 
 	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_switchHistory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Query_switchHistory_argsFrom(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["from"] = arg0
+	arg1, err := ec.field_Query_switchHistory_argsTo(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["to"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Query_switchHistory_argsFrom(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (time.Time, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["from"]
+	if !ok {
+		var zeroVal time.Time
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
+	if tmp, ok := rawArgs["from"]; ok {
+		return ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+	}
+
+	var zeroVal time.Time
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_switchHistory_argsTo(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (time.Time, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["to"]
+	if !ok {
+		var zeroVal time.Time
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+	if tmp, ok := rawArgs["to"]; ok {
+		return ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+	}
+
+	var zeroVal time.Time
 	return zeroVal, nil
 }
 
@@ -1699,6 +1883,94 @@ func (ec *executionContext) fieldContext_Mutation_deleteRule(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _OverheatingProtectionSample_isActive(ctx context.Context, field graphql.CollectedField, obj *model.OverheatingProtectionSample) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OverheatingProtectionSample_isActive(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsActive, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OverheatingProtectionSample_isActive(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OverheatingProtectionSample",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _OverheatingProtectionSample_time(ctx context.Context, field graphql.CollectedField, obj *model.OverheatingProtectionSample) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_OverheatingProtectionSample_time(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Time, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_OverheatingProtectionSample_time(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "OverheatingProtectionSample",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_boiler(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_boiler(ctx, field)
 	if err != nil {
@@ -1868,6 +2140,128 @@ func (ec *executionContext) fieldContext_Query_sensorRange(ctx context.Context, 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_sensorRange_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_switchHistory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_switchHistory(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().SwitchHistory(rctx, fc.Args["from"].(time.Time), fc.Args["to"].(time.Time))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.SwitchSample)
+	fc.Result = res
+	return ec.marshalNSwitchSample2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐSwitchSampleᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_switchHistory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "state":
+				return ec.fieldContext_SwitchSample_state(ctx, field)
+			case "time":
+				return ec.fieldContext_SwitchSample_time(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SwitchSample", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_switchHistory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_overheatingProtectionHistory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_overheatingProtectionHistory(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().OverheatingProtectionHistory(rctx, fc.Args["from"].(time.Time), fc.Args["to"].(time.Time))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.OverheatingProtectionSample)
+	fc.Result = res
+	return ec.marshalNOverheatingProtectionSample2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐOverheatingProtectionSampleᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_overheatingProtectionHistory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "isActive":
+				return ec.fieldContext_OverheatingProtectionSample_isActive(ctx, field)
+			case "time":
+				return ec.fieldContext_OverheatingProtectionSample_time(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type OverheatingProtectionSample", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_overheatingProtectionHistory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -2493,6 +2887,94 @@ func (ec *executionContext) fieldContext_Subscription_sensor(ctx context.Context
 	if fc.Args, err = ec.field_Subscription_sensor_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SwitchSample_state(ctx context.Context, field graphql.CollectedField, obj *model.SwitchSample) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SwitchSample_state(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.State, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.State)
+	fc.Result = res
+	return ec.marshalNState2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐState(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SwitchSample_state(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SwitchSample",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type State does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SwitchSample_time(ctx context.Context, field graphql.CollectedField, obj *model.SwitchSample) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SwitchSample_time(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Time, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SwitchSample_time(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SwitchSample",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -4451,6 +4933,50 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 	return out
 }
 
+var overheatingProtectionSampleImplementors = []string{"OverheatingProtectionSample"}
+
+func (ec *executionContext) _OverheatingProtectionSample(ctx context.Context, sel ast.SelectionSet, obj *model.OverheatingProtectionSample) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, overheatingProtectionSampleImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("OverheatingProtectionSample")
+		case "isActive":
+			out.Values[i] = ec._OverheatingProtectionSample_isActive(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "time":
+			out.Values[i] = ec._OverheatingProtectionSample_time(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -4521,6 +5047,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_sensorRange(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "switchHistory":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_switchHistory(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "overheatingProtectionHistory":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_overheatingProtectionHistory(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -4655,6 +5225,50 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
+}
+
+var switchSampleImplementors = []string{"SwitchSample"}
+
+func (ec *executionContext) _SwitchSample(ctx context.Context, sel ast.SelectionSet, obj *model.SwitchSample) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, switchSampleImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SwitchSample")
+		case "state":
+			out.Values[i] = ec._SwitchSample_state(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "time":
+			out.Values[i] = ec._SwitchSample_time(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
 }
 
 var __DirectiveImplementors = []string{"__Directive"}
@@ -5162,6 +5776,60 @@ func (ec *executionContext) marshalNMeasure2ᚖstupidᚑcaldaiaᚋcontrollerᚋg
 	return ec._Measure(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNOverheatingProtectionSample2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐOverheatingProtectionSampleᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.OverheatingProtectionSample) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNOverheatingProtectionSample2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐOverheatingProtectionSample(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNOverheatingProtectionSample2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐOverheatingProtectionSample(ctx context.Context, sel ast.SelectionSet, v *model.OverheatingProtectionSample) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._OverheatingProtectionSample(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNRule2stupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐRule(ctx context.Context, sel ast.SelectionSet, v model.Rule) graphql.Marshaler {
 	return ec._Rule(ctx, sel, &v)
 }
@@ -5243,6 +5911,60 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNSwitchSample2ᚕᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐSwitchSampleᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SwitchSample) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSwitchSample2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐSwitchSample(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNSwitchSample2ᚖstupidᚑcaldaiaᚋcontrollerᚋgraphᚋmodelᚐSwitchSample(ctx context.Context, sel ast.SelectionSet, v *model.SwitchSample) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SwitchSample(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {

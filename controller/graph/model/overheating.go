@@ -2,7 +2,6 @@ package model
 
 import (
 	"context"
-	"log"
 	"math"
 	"time"
 )
@@ -17,7 +16,6 @@ func GetCurrentOverheatingIndex(ctx context.Context, boiler *Boiler) (float64, e
 	endTime := time.Now()
 	startTime := endTime.Add(-OH_HISTORY * time.Second)
 	samples, err := boiler.GetSwitchHistory(ctx, startTime, endTime)
-	log.Printf("Switch history: %s", samples)
 	if err != nil {
 		return 0, err
 	}
@@ -27,7 +25,7 @@ func GetCurrentOverheatingIndex(ctx context.Context, boiler *Boiler) (float64, e
 		if err != nil {
 			return 0, err
 		}
-		samples = append(samples, SwitchSample{
+		samples = append(samples, &SwitchSample{
 			Time:  startTime,
 			State: info.State,
 		})
@@ -38,7 +36,7 @@ func GetCurrentOverheatingIndex(ctx context.Context, boiler *Boiler) (float64, e
 // As it turns out, with just a few On/Off samples over a long time period it is
 // much more efficient to simply do the maths and precisely calculate the index
 // rather than applying a transfer function.
-func calculateOverheatingIndex(samples []SwitchSample, endTime time.Time) float64 {
+func calculateOverheatingIndex(samples []*SwitchSample, endTime time.Time) float64 {
 	if len(samples) == 0 {
 		return 0
 	}
@@ -64,7 +62,7 @@ func calculateOverheatingIndex(samples []SwitchSample, endTime time.Time) float6
 
 // Here just for reference and benchmark. This uses the discrete transfer
 // function and is much less efficient
-func calculateOverheatingIndex_TransferFunction(samples []SwitchSample, endTime time.Time) float64 {
+func calculateOverheatingIndex_TransferFunction(samples []*SwitchSample, endTime time.Time) float64 {
 	if len(samples) == 0 {
 		return 0
 	}

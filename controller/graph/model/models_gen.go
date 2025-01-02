@@ -25,6 +25,11 @@ type Measure struct {
 type Mutation struct {
 }
 
+type OverheatingProtectionSample struct {
+	IsActive bool      `json:"isActive"`
+	Time     time.Time `json:"time"`
+}
+
 type Query struct {
 }
 
@@ -40,6 +45,11 @@ type Rule struct {
 }
 
 type Subscription struct {
+}
+
+type SwitchSample struct {
+	State State     `json:"state"`
+	Time  time.Time `json:"time"`
 }
 
 type State string

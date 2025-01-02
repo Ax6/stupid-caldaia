@@ -10,7 +10,7 @@ var (
 	bt0      = time.Now()
 	bEndTime = bt0.Add(24 * time.Hour)
 	// Benchmarking typical application. About 8 switches in 24 hours
-	benchmarkSamples = []SwitchSample{
+	benchmarkSamples = []*SwitchSample{
 		{Time: bt0, State: StateOff},
 		{Time: bt0.Add(time.Hour), State: StateOn},
 		{Time: bt0.Add(2 * time.Hour), State: StateOff},
@@ -40,14 +40,14 @@ func TestCalculateOverheatingIndex(t *testing.T) {
 
 	testCases := []struct {
 		name      string
-		have      []SwitchSample
+		have      []*SwitchSample
 		endTime   time.Time
 		want      float64
 		precision float64
 	}{
 		{
 			name: "Caught in the act",
-			have: []SwitchSample{
+			have: []*SwitchSample{
 				{
 					Time:  t0,
 					State: StateOn,
@@ -59,7 +59,7 @@ func TestCalculateOverheatingIndex(t *testing.T) {
 		},
 		{
 			name: "Normal OFF - ON",
-			have: []SwitchSample{
+			have: []*SwitchSample{
 				{
 					Time:  t0,
 					State: StateOff,
@@ -75,7 +75,7 @@ func TestCalculateOverheatingIndex(t *testing.T) {
 		},
 		{
 			name: "Normal ON - OFF",
-			have: []SwitchSample{
+			have: []*SwitchSample{
 				{
 					Time:  t0,
 					State: StateOn,
@@ -91,7 +91,7 @@ func TestCalculateOverheatingIndex(t *testing.T) {
 		},
 		{
 			name: "A bit ON then OFF",
-			have: []SwitchSample{
+			have: []*SwitchSample{
 				{
 					Time:  t0,
 					State: StateOn,

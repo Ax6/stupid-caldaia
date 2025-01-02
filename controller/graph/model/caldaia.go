@@ -27,11 +27,6 @@ type Boiler struct {
 	protectionSeriesKey string
 }
 
-type SwitchSample struct {
-	Time  time.Time
-	State State
-}
-
 const (
 	stateUpdateBatchingTime = 1000 // In microseconds
 )
@@ -389,16 +384,16 @@ func (c *Boiler) GetInfo(ctx context.Context) (*BoilerInfo, error) {
 	}
 }
 
-func (c *Boiler) GetSwitchHistory(ctx context.Context, from time.Time, to time.Time) ([]SwitchSample, error) {
+func (c *Boiler) GetSwitchHistory(ctx context.Context, from time.Time, to time.Time) ([]*SwitchSample, error) {
 	fromTimestamp := int(from.UnixMilli())
 	toTimestamp := int(to.UnixMilli())
 	data, err := c.client.TSRange(ctx, c.switchSeriesKey, fromTimestamp, toTimestamp).Result()
 	if err != nil {
-		return []SwitchSample{}, err
+		return []*SwitchSample{}, err
 	}
-	samples := make([]SwitchSample, 0, len(data))
+	samples := make([]*SwitchSample, 0, len(data))
 	for _, sample := range data {
-		samples = append(samples, SwitchSample{
+		samples = append(samples, &SwitchSample{
 			Time:  time.UnixMilli(sample.Timestamp),
 			State: AllState[int(sample.Value)],
 		})
