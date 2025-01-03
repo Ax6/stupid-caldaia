@@ -49,7 +49,7 @@
 			data.overheatingProtectionHistory.reduce((acc, curr) => {
 				const prevSet = acc.length > 0 && acc[acc.length - 1].to === now;
 				if (curr.isActive && !prevSet) {
-					acc.push({ from: curr.time, to: now, color: 'gray' });
+					acc.push({ from: curr.time, to: now, color: 'cyan' });
 				} else if (!curr.isActive && prevSet) {
 					acc[acc.length - 1].to = curr.time;
 				}
